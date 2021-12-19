@@ -145,7 +145,7 @@ TEST_F(GraphTest, LoadFromFileSmall) {
       string test_graph_path = "../test/graph/" + test_graph_names[i] + ".txt";
       ifstream graph_file(test_graph_path);
       if (!graph_file.is_open() || !g.load_from_file(graph_file)) {
-         cerr << "graph file " << test_graph_path << " does not exist.\n";
+         cerr << "Cannot load graph file " << test_graph_path << ".\n";
          FAIL();
       } else {
          // TODO: We also need to check if edges are matched. Further, if nodes have labels, we need to check labels.

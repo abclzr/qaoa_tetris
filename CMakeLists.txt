@@ -5,9 +5,10 @@ project(subiso VERSION 0.1.0)
 set(CMAKE_CXX_STANDARD 11)
 
 add_library(graph src/Graph.cpp)
+add_library(graph_match src/GraphMatch.cpp)
 
 add_executable(subiso main.cpp)
-target_link_libraries(subiso graph)
+target_link_libraries(subiso graph graph_match)
 
 
 # set(CPACK_PROJECT_NAME ${PROJECT_NAME})

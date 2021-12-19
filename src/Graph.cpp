@@ -22,7 +22,7 @@ bool Graph::load_from_file(ifstream &graphFile) {
     graphFile >> numNodes >> numEdges;
     graph_ = Graph_bst(numNodes);
     
-    // TODO: check if the edge number is correct.
+    // FIXME: check if the edge number is correct.
     for (int i = 0; i < numEdges; i++) {
         int n1, n2;
         graphFile >> n1 >> n2;
@@ -38,8 +38,8 @@ bool Graph::load_from_file(ifstream &graphFile) {
 Graph::DGraph_bst Graph::generate_dag(int rootIndex) {
     // Traverse the graph using bfs starts from the root, for every neighbor node nn of the 
     // current node n, we add directed edge (n, nn)
-    // TODO: The original DAF algorithms prioritize nodes in the same level that have larger label frequency/
-    // We use default order for now.
+    // TODO: The original DAF algorithms prioritize nodes in the same level that have larger label frequency.
+    // We use default(explored) order for now.
 
     MyVisitor vis(num_vertices(graph_), dgraph_);
     breadth_first_search(graph_, vertex(rootIndex, graph_), visitor(vis));

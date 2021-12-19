@@ -74,7 +74,7 @@ class Graph
 		 */
 		bool load_from_file(ifstream &graphFile);
 
-		// TODO: DAG Graph could be a seperate class that inheritance this graph class.
+		// XXX: DAG Graph could be a seperate class that inheritance this graph class.
 		DGraph_bst generate_dag(int rootIndex);
 
 };
