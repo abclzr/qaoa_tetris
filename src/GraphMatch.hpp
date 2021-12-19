@@ -22,12 +22,22 @@ class GraphMatch
 private:
 	Graph queryG_;
 	Graph dataG_;
+	Graph::DGraph_bst queryDAG_;
+
+	Graph::DGraph_bst build_candidate_space();
 
 	int getRootNode();
+
+
 	
 public:
 	GraphMatch(Graph queryG, Graph dataG) : 
-		queryG_(queryG), dataG_(dataG) {}
+		queryG_(queryG), dataG_(dataG) {
+		// Step 1: Build the dag graph for the query graph.
+		int rootIndex = getRootNode();
+		queryDAG_ = queryG_.generate_dag(rootIndex);
+	}
+
 	~GraphMatch() {}
 
 	// XXX: Now a vector of int pairs is used to represent the matching from query to data. 

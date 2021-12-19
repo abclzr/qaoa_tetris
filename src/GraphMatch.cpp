@@ -10,9 +10,7 @@ int GraphMatch::getRootNode() {
 }
 
 vector<vector<pair<int, int>>> GraphMatch::subgraph_isomorphsim() {
-    // Step 1: Build the dag graph for the query graph.
-    int rootIndex = getRootNode();
-    Graph::DGraph_bst queryDAG = queryG_.generate_dag(rootIndex);
+
 
     return {};
 }
