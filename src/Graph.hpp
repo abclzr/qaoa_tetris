@@ -77,5 +77,13 @@ class Graph
 		// XXX: DAG Graph could be a seperate class that inheritance this graph class.
 		DGraph_bst generate_dag(int rootIndex);
 
+		/**
+		 * @brief Get the candidate set in the data graph for node u
+		 * 
+		 * @param ui node index in the current(query graph)
+		 * @param dataGraph 
+		 * @return vector<Graph_bst::vertex_descriptor>
+		 */
+		vector<Graph_bst::vertex_descriptor> get_candidate_set(Graph_bst::vertex_descriptor ui, Graph &dataGraph);
 };
 #endif

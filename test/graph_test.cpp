@@ -1,9 +1,11 @@
 #include "../src/Graph.hpp"
 #include <boost/graph/adjacency_list.hpp>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
 using namespace boost;
+using ::testing::_;
 
 // The fixture for testing class Foo.
 class GraphTest : public ::testing::Test {
@@ -87,32 +89,37 @@ class GraphTest : public ::testing::Test {
       return g;
    }
 
+   /**
+    * @brief This is the graph in Figure 5.
+    * 
+    * @return Graph::Graph_bst 
+    */
    Graph::Graph_bst generate_graph2() {
       Graph::Graph_bst g(9);
-      add_edge(1, 2, g);
-      add_edge(1, 3, g);
+      add_edge(0, 1, g);
+      add_edge(0, 2, g);
+      add_edge(0, 3, g);
       add_edge(1, 4, g);
-      add_edge(2, 5, g);
+      add_edge(1, 5, g);
       add_edge(2, 6, g);
       add_edge(3, 7, g);
-      add_edge(4, 8, g);
-      add_edge(6, 7, g);
-      add_edge(7, 9, g);
+      add_edge(5, 6, g);
+      add_edge(6, 8, g);
 
       return g;
    }
 
    Graph::DGraph_bst generate_graph2_dag() {
       Graph::DGraph_bst g(9);
-      add_edge(1, 2, g);
-      add_edge(1, 3, g);
+      add_edge(0, 1, g);
+      add_edge(0, 2, g);
+      add_edge(0, 3, g);
       add_edge(1, 4, g);
-      add_edge(2, 5, g);
+      add_edge(1, 5, g);
       add_edge(2, 6, g);
       add_edge(3, 7, g);
-      add_edge(4, 8, g);
-      add_edge(6, 7, g);
-      add_edge(7, 9, g);
+      add_edge(5, 6, g);
+      add_edge(6, 8, g);
 
       return g;
    }
@@ -142,7 +149,8 @@ TEST_F(GraphTest, LoadFromFileSmall) {
 
    for (int i = 0; i < test_graph_names.size(); i++) {
       Graph g;
-      string test_graph_path = "../test/graph/" + test_graph_names[i] + ".txt";
+      // XXX: modify the current testing/working directory in cmakefile
+      string test_graph_path = "../../test/graph/" + test_graph_names[i] + ".txt";
       ifstream graph_file(test_graph_path);
       if (!graph_file.is_open() || !g.load_from_file(graph_file)) {
          cerr << "Cannot load graph file " << test_graph_path << ".\n";
@@ -180,6 +188,40 @@ TEST_F(GraphTest, GenerateDAG) {
 
       EXPECT_EQ(num_vertices(dag), num_vertices(g.graph_));
       EXPECT_EQ(num_edges(dag), num_edges(g.graph_));
+   }
+}
+
+TEST_F(GraphTest, GetCandidateSet) {
+   Graph queryG, dataG;
+   queryG = Graph(generate_graph2());
+   vector<int> query_degrees = {3, 3, 2, 2, 1, 2, 3, 1, 1};
+   vector<vector<Graph::Graph_bst::vertex_descriptor>> correct_cs = {
+      {7, 8, 9}, // degree 3
+      {7, 8, 9}, // degree 3
+      {1, 2, 4, 6, 7, 8, 9}, // degree 2
+      {1, 2, 4, 6, 7, 8, 9}, // degree 2
+      {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, // degree 1
+      {1, 2, 4, 6, 7, 8, 9}, // degree 2
+      {7, 8, 9}, // degree 3
+      {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, // degree 1
+      {0, 1, 2, 3, 4, 5, 6, 7, 8, 9} // degree 1
+   };
+
+   string data_graph_path = "../../test/graph/10_1_0.txt";
+   ifstream data_graph_file(data_graph_path);
+   if (!data_graph_file.is_open() || !dataG.load_from_file(data_graph_file)) {
+      cerr << "Cannot load graph file ../../test/graph/10_1_0.txt.\n";
+      FAIL();
+   }
+
+   graph_traits<Graph::Graph_bst>::vertex_iterator ui, ui_end;
+   int i = 0;
+   for (boost::tie(ui, ui_end) = boost::vertices(queryG.graph_); ui != ui_end; ++ui) {
+      EXPECT_EQ(*ui, i);
+      EXPECT_EQ(degree(*ui, queryG.graph_), query_degrees[i]);
+      vector<Graph::Graph_bst::vertex_descriptor> cs = queryG.get_candidate_set(*ui, dataG);
+      EXPECT_THAT(cs, testing::UnorderedElementsAreArray(correct_cs[i]));
+      i += 1;
    }
 }
 

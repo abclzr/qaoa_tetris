@@ -38,7 +38,7 @@ bool Graph::load_from_file(ifstream &graphFile) {
 Graph::DGraph_bst Graph::generate_dag(int rootIndex) {
     // Traverse the graph using bfs starts from the root, for every neighbor node nn of the 
     // current node n, we add directed edge (n, nn)
-    // TODO: The original DAF algorithms prioritize nodes in the same level that have larger label frequency.
+    // XXX: The original DAF algorithms prioritize nodes in the same level that have larger label frequency.
     // We use default(explored) order for now.
 
     MyVisitor vis(num_vertices(graph_), dgraph_);
@@ -61,4 +61,18 @@ Graph::DGraph_bst Graph::generate_dag(int rootIndex) {
     // }
 
     return dgraph_;
+}
+
+vector<Graph::Graph_bst::vertex_descriptor> Graph::get_candidate_set(Graph_bst::vertex_descriptor ui, Graph &dataGraph) {
+    vector<Graph::Graph_bst::vertex_descriptor> candidate_set;
+    int u_degree = out_degree(ui, graph_);
+    graph_traits<Graph_bst>::vertex_iterator vi, vi_end;
+    for (boost::tie(vi, vi_end) = boost::vertices(dataGraph.graph_); vi != vi_end; ++vi) {
+        int v1_degree = out_degree(*vi, dataGraph.graph_);
+        if (v1_degree >= u_degree) {
+            candidate_set.emplace_back(*vi);
+        }
+    }
+    
+    return candidate_set;
 }
