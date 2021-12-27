@@ -112,6 +112,42 @@ Graph Graph::generate_dag(int u) {
 }
 
 
+void Graph::topo_sort_util(int u, vector<bool> &visited, vector<int>& topo_order) {
+    // Mark the current node as visited.
+    visited[u] = true;
+ 
+    // Recur for all the vertices
+    // adjacent to this vertex
+    for (auto vi = adjList_[u].begin(); vi != adjList_[u].end(); ++vi)
+        if (!visited[*vi])
+            topo_sort_util(*vi, visited, topo_order);
+ 
+    // Push current vertex to stack
+    // which stores result
+    topo_order.insert(topo_order.begin(), u);   
+}
+
+
+vector<int> Graph::get_topo_order() {
+    vector<int> topo_order;
+    vector<bool> visited(numNodes_, false);
+
+    for (int i = 0; i < numNodes_; i++) {
+        if (!visited[i]) {
+            topo_sort_util(i, visited, topo_order);
+        }
+    }
+
+    return topo_order;
+}
+
+
+vector<int> Graph::get_reversed_topo_order() {
+    vector<int> topo_order = get_topo_order();
+    return vector<int>(topo_order.rbegin(), topo_order.rend());
+}
+
+
 set<int> Graph::get_candidate_set(int u, Graph &g) {
     int u_degree = degree(u);
     set<int> candidate_set;

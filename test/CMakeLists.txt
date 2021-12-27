@@ -1,4 +1,5 @@
-macro(package_add_test_with_libraries TESTNAME FILES LIBRARIES TEST_WORKING_DIRECTORY)
+macro(package_add_test_with_libraries TESTNAME FILES TEST_WORKING_DIRECTORY)
+    set(LIBRARIES ${ARGN})
     add_executable(${TESTNAME} ${FILES})
     target_link_libraries(${TESTNAME} gtest gmock gtest_main ${LIBRARIES})
     gtest_discover_tests(${TESTNAME}
@@ -8,7 +9,9 @@ macro(package_add_test_with_libraries TESTNAME FILES LIBRARIES TEST_WORKING_DIRE
     set_target_properties(${TESTNAME} PROPERTIES FOLDER test)
 endmacro()
 
-package_add_test_with_libraries(graph_test graph_test.cpp graph "${PROJECT_SOURCE_DIR}/test/graph")
+package_add_test_with_libraries(graph_test graph_test.cpp "${PROJECT_SOURCE_DIR}/test/graph" graph)
+
+package_add_test_with_libraries(cs_test cs_test.cpp "${PROJECT_SOURCE_DIR}/test/graph" graph graph_match )
 
 
 # Test

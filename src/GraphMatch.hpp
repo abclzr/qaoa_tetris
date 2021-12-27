@@ -14,6 +14,7 @@
 #pragma once
 
 #include <vector>
+#include <unordered_map>
 
 #include "Graph.hpp"
 
@@ -24,13 +25,13 @@ private:
 	Graph queryDAG_;
 	Graph dataG_;
 
-	// Graph::Graph_bst build_init_CS();
-	// Graph::Graph_bst build_CS();
+	void build_init_CS(Graph &initCS, 
+                        unordered_map<int, unordered_map<int, int>> &uv2id, 
+                        unordered_map<int, pair<int, int>> &id2uv);
+	Graph build_CS();
 
 	int getRootNode();
 
-
-	
 public:
 	GraphMatch(Graph queryG, Graph dataG) : 
 		queryG_(queryG), dataG_(dataG) {
@@ -39,11 +40,21 @@ public:
 		int rootIndex = getRootNode();
 		queryDAG_ = queryG_.generate_dag(rootIndex);
 	}
-	GraphMatch();
-	~GraphMatch();
+	GraphMatch() {};
+	~GraphMatch() {};
+
+	Graph &get_query_G() {return queryG_;}
+	Graph &get_query_dag() {return queryDAG_;}
+	Graph &get_data_G() {return dataG_;}
 
 	// XXX: Now a vector of int pairs is used to represent the matching from query to data. 
 	// It suppose to return an iterator(?) for practical use.
 	vector<vector<pair<int, int>>> subgraph_isomorphsim();
+
+	void test_init_CS(Graph &initCS, 
+                        unordered_map<int, unordered_map<int, int>> &uv2id, 
+                        unordered_map<int, pair<int, int>> &id2uv) {
+		build_init_CS(initCS, uv2id, id2uv);
+	}
 };
 #endif

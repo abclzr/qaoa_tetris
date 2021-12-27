@@ -19,6 +19,7 @@
 
 using namespace std;
 
+// XXX: sperate directed graph and undirected graph to two different classes.
 class Graph  
 {
 	private:
@@ -29,9 +30,11 @@ class Graph
 		vector<int> out_degree_;
 		vector<set<int>> adjList_;
 
+		void topo_sort_util(int v, vector<bool> &visited, vector<int>& topo_order);
+
 	public:
 		Graph() : numNodes_(0), numEdges_(0), directed_(false) {}
-
+		Graph(bool directed) : numNodes_(0), numEdges_(0), directed_(directed) {}
 		Graph(int numNodes, bool directed=false) : 
 			numNodes_(numNodes), 
 			numEdges_(0), 
@@ -50,6 +53,10 @@ class Graph
 		bool add_edge(int u, int v);
 
 		vector<vector<int>> get_edges();
+		set<int> get_neighbors(int u) {return adjList_[u];}
+		bool has_edge(int u, int v) {
+			return adjList_[u].find(v) != adjList_[u].end();
+		}
 
 		int in_degree(int u);
 		int out_degree(int u);
@@ -58,6 +65,11 @@ class Graph
 		bool load_from_file(ifstream &graphFile, bool directed=false);
 
 		Graph generate_dag(int u);
+
+		vector<int> get_topo_order();
+		vector<int> get_reversed_topo_order();
+
+		
 
 		set<int> get_candidate_set(int u, Graph &g);
 

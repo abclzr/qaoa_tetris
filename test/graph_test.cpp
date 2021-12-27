@@ -112,33 +112,33 @@ class GraphTest : public ::testing::Test {
    };
 
 TEST_F(GraphTest, LoadFromFileTest) {
-   vector<string> test_graph_names = {"line2", "line3", "triangle", "square", "clique4"};
-   vector<Graph> correct_graphs = {
+   vector<string> testGraphNames = {"line2", "line3", "triangle", "square", "clique4"};
+   vector<Graph> correctGraphs = {
       generate_line2(true), 
       generate_line3(true),
       generate_triangle(false),
       generate_square(false),
       generate_clique(4, true)
       };
-   vector<bool> graph_directed = {
+   vector<bool> graphDirected = {
       true, true, false, false, true
    };
 
-   for (int i = 0; i < test_graph_names.size(); i++) {
+   for (int i = 0; i < testGraphNames.size(); i++) {
       Graph g;
       // XXX: modify the current testing/working directory in cmakefile
-      string test_graph_path = "../../test/graph/" + test_graph_names[i] + ".txt";
-      ifstream graph_file(test_graph_path);
-      if (!graph_file.is_open() || !g.load_from_file(graph_file, graph_directed[i])) {
-         cerr << "Cannot load graph file " << test_graph_path << ".\n";
+      string testGraphPath = "../../test/graph/" + testGraphNames[i] + ".txt";
+      ifstream graphFile(testGraphPath);
+      if (!graphFile.is_open() || !g.load_from_file(graphFile, graphDirected[i])) {
+         cerr << "Cannot load graph file " << testGraphPath << ".\n";
          FAIL();
       } else {
          // TODO: We also need to check if edges are matched. Further, if nodes have labels, we need to check labels.
          // TODO: We need a function here to check if two bst graphs are the same. (both directed and undirected)
-         EXPECT_EQ(g.num_nodes(), correct_graphs[i].num_nodes());
-         EXPECT_EQ(g.num_edges(), correct_graphs[i].num_edges());
+         EXPECT_EQ(g.num_nodes(), correctGraphs[i].num_nodes());
+         EXPECT_EQ(g.num_edges(), correctGraphs[i].num_edges());
 
-         graph_file.close();
+         graphFile.close();
       }
 
    }
@@ -146,11 +146,11 @@ TEST_F(GraphTest, LoadFromFileTest) {
 
 TEST_F(GraphTest, DirectedGraphDegreeTest) {
    Graph g = generate_fig5(true);
-   vector<int> in_degrees = {0, 1, 1, 1, 1, 1, 2, 1, 1};
-   vector<int> out_degrees = {3, 2, 1, 1, 0, 1, 1, 0, 0};
+   vector<int> inDegrees = {0, 1, 1, 1, 1, 1, 2, 1, 1};
+   vector<int> outDegrees = {3, 2, 1, 1, 0, 1, 1, 0, 0};
    for (int i = 0; i < g.num_nodes(); i++) {
-      EXPECT_EQ(g.in_degree(i), in_degrees[i]);
-      EXPECT_EQ(g.out_degree(i), out_degrees[i]);
+      EXPECT_EQ(g.in_degree(i), inDegrees[i]);
+      EXPECT_EQ(g.out_degree(i), outDegrees[i]);
    }
 }
 
@@ -164,7 +164,7 @@ TEST_F(GraphTest, UndirectedGraphDegreeTest) {
 }
 
 
-TEST_F(GraphTest, DirectedGraphTopoIterTest) {
+TEST_F(GraphTest, DirectedGraphDAGTest) {
    Graph g = generate_fig5(true);
    Graph g_dag;
    vector<vector<int>> edges = {{0, 1}, {0, 2}, {0, 3}, {1, 4}, {1, 5}, {2, 6}, {3, 7}, {5, 6}, {6, 8}};
@@ -174,7 +174,7 @@ TEST_F(GraphTest, DirectedGraphTopoIterTest) {
 }
 
 
-TEST_F(GraphTest, UndirectedGraphTopoIterTest) {
+TEST_F(GraphTest, UndirectedGraphDAGTest) {
    Graph g = generate_fig5(false);
    Graph g_dag;
    vector<vector<int>> edges = {{0, 1}, {0, 2}, {0, 3}, {1, 4}, {1, 5}, {2, 6}, {3, 7}, {5, 6}, {6, 8}};
@@ -186,7 +186,7 @@ TEST_F(GraphTest, UndirectedGraphTopoIterTest) {
 TEST_F(GraphTest, CandidateSetTest) {
    Graph queryG, dataG;
    queryG = generate_fig5(false);
-   vector<set<int>> correct_cs = {
+   vector<set<int>> correctCS = {
       {7, 8, 9}, // degree 3
       {7, 8, 9}, // degree 3
       {1, 2, 4, 6, 7, 8, 9}, // degree 2
@@ -198,17 +198,34 @@ TEST_F(GraphTest, CandidateSetTest) {
       {0, 1, 2, 3, 4, 5, 6, 7, 8, 9} // degree 1
    };
 
-   string data_graph_path = "../../test/graph/10_1_0.txt";
-   ifstream data_graph_file(data_graph_path);
-   if (!data_graph_file.is_open() || !dataG.load_from_file(data_graph_file)) {
+   string dataGraphPath = "../../test/graph/10_1_0.txt";
+   ifstream dataGraphFile(dataGraphPath);
+   if (!dataGraphFile.is_open() || !dataG.load_from_file(dataGraphFile)) {
       cerr << "Cannot load graph file ../../test/graph/10_1_0.txt.\n";
       FAIL();
    }
 
    for (int i = 0; i < queryG.num_nodes(); i++) {
-      EXPECT_THAT(queryG.get_candidate_set(i, dataG), testing::UnorderedElementsAreArray(correct_cs[i]));
+      EXPECT_THAT(queryG.get_candidate_set(i, dataG), testing::UnorderedElementsAreArray(correctCS[i]));
    }
 }
+
+
+TEST_F(GraphTest, TopoIterTest) {
+   Graph g = generate_fig5(false).generate_dag(0);
+   // FIXME Add more tests...
+   vector<int> topoOrder = {0, 3, 7, 2, 1, 5, 6, 8, 4};
+   EXPECT_EQ(g.get_topo_order(), topoOrder);
+}
+
+
+TEST_F(GraphTest, ReversedTopoIterTest) {
+   Graph g = generate_fig5(false).generate_dag(0);
+   // FIXME Add more tests...
+   vector<int> revTopoOrder = {4, 8, 6, 5, 1, 2, 7, 3, 0};
+   EXPECT_EQ(g.get_reversed_topo_order(), revTopoOrder);
+}
+
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
