@@ -70,6 +70,77 @@ TEST_F(CSTest, InitCSTest) {
     }
 }
 
+TEST_F(CSTest, RefineCSTest) {
+    Graph queryG;
+    string queryGraphPath = "../../test/graph/fig1q.txt";
+    ifstream queryGraphFile(queryGraphPath);
+    if (!queryGraphFile.is_open() || !queryG.load_from_file(queryGraphFile)) {
+        cerr << "Cannot load query graph file ../../test/graph/fig1q.txt.\n";
+        FAIL();
+    }
+    Graph queryDAG = queryG.generate_dag(0);
+    
+    GraphMatch gm;
+    Graph initCS(true);
+    unordered_map<int, unordered_map<int, int>> uv2id;
+    unordered_map<int, pair<int, int>> id2uv;
+    // Build initCS
+    initCS = Graph(11, true);
+    set<vector<int>> edges = {
+        {1, 3}, {1, 4}, {1, 5}, {1, 6}, {1, 7}, {2, 8}, {2, 9}, 
+        {3, 10}, {3, 5}, {4, 10}, {4, 5}, {8, 11}, {8, 6}, {8, 7},
+        {5, 10}, {6, 10}, {7, 10}, {9, 11}
+    };
+    for (auto edge : edges) {
+        initCS.add_edge(edge[0] - 1, edge[1] - 1);
+    }
+    vector<vector<int>> u2v = {
+        {1, 2}, {3, 4, 8}, {5, 6, 7, 9}, {10, 11}
+    };
+    for (int u = 0; u < u2v.size(); u++) {
+        for (int v : u2v[u]) {
+            // In this example id = v
+            uv2id[u][v - 1] = v - 1;
+            id2uv[v - 1] = make_pair(u, v - 1);
+        }
+    }
+    EXPECT_EQ(initCS.num_nodes(), 11);
+    EXPECT_EQ(initCS.num_edges(), 18);
+    bool changed = false;
+    edges = set<vector<int>>();
+    for (auto edge : initCS.get_edges()) {
+        edges.insert(edge);
+    }
+
+    changed = gm.test_refine_CS(initCS, uv2id, id2uv, queryDAG, 1);
+    EXPECT_EQ(changed, true);
+    EXPECT_EQ(initCS.num_edges(), 15);
+    edges.erase({1, 8});
+    edges.erase({7, 10});
+    edges.erase({8, 10});
+    EXPECT_THAT(initCS.get_edges(), testing::UnorderedElementsAreArray(edges));
+
+    changed = gm.test_refine_CS(initCS, uv2id, id2uv, queryDAG, 0);
+    EXPECT_EQ(changed, true);
+    EXPECT_EQ(initCS.num_edges(), 12);
+    edges.erase({1, 7});
+    edges.erase({7, 5});
+    edges.erase({7, 6});
+    EXPECT_THAT(initCS.get_edges(), testing::UnorderedElementsAreArray(edges));
+
+    changed = gm.test_refine_CS(initCS, uv2id, id2uv, queryDAG, 1);
+    EXPECT_EQ(changed, true);
+    EXPECT_EQ(initCS.num_edges(), 8);
+    edges.erase({0, 5});
+    edges.erase({0, 6});
+    edges.erase({5, 9});
+    edges.erase({6, 9});
+    EXPECT_THAT(initCS.get_edges(), testing::UnorderedElementsAreArray(edges));
+
+    changed = gm.test_refine_CS(initCS, uv2id, id2uv, queryDAG, 0);
+    EXPECT_EQ(changed, false);
+}
+
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
