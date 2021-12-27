@@ -198,6 +198,15 @@ TEST_F(GraphTest, UndirectedGraphDAGTest) {
    EXPECT_THAT(g.generate_dag(1).get_edges(), testing::UnorderedElementsAreArray(edges));
 }
 
+
+TEST_F(GraphTest, ReverseGraphTest) {
+   Graph g_dag = generate_fig5(false).generate_dag(0);
+   Graph reverse_g_dag = g_dag.generate_reversed_graph();
+   vector<vector<int>> edges = {{1, 0}, {2, 0}, {3, 0}, {4, 1}, {5, 1}, {6, 2}, {7, 3}, {6, 5}, {8, 6}};
+   EXPECT_THAT(reverse_g_dag.get_edges(), testing::UnorderedElementsAreArray(edges));
+}
+
+
 TEST_F(GraphTest, CandidateSetTest) {
    Graph queryG, dataG;
    queryG = generate_fig5(false);

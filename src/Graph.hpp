@@ -67,6 +67,7 @@ class Graph
 		bool load_from_file(ifstream &graphFile, bool directed=false);
 
 		Graph generate_dag(int u);
+		Graph generate_reversed_graph();
 
 		vector<int> get_topo_order();
 		vector<int> get_reversed_topo_order();

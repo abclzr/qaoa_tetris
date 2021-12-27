@@ -133,6 +133,15 @@ Graph Graph::generate_dag(int u) {
 }
 
 
+Graph Graph::generate_reversed_graph() {
+    Graph g(numNodes_, true);
+    for (auto edge : get_edges()) {
+        g.add_edge(edge[1], edge[0]);
+    }
+    return g;
+}
+
+
 void Graph::topo_sort_util(int u, vector<bool> &visited, vector<int>& topo_order) {
     // Mark the current node as visited.
     visited[u] = true;
