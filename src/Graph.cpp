@@ -35,6 +35,27 @@ bool Graph::add_edge(int u, int v) {
     return true;
 }
 
+
+void Graph::remove_nodes(set<int> nodes) {
+    // FIXME: we are actually removing edges related to the node but 
+    // not remove nodes.
+    for (int i = 0; i < numNodes_; i++) {
+        if (nodes.find(i) != nodes.end()) {
+            numEdges_ -= adjList_[i].size();
+            adjList_[i] = set<int>();
+        } else {
+            set<int> i_nbrs = adjList_[i];
+            for (auto u : i_nbrs) {
+                if (nodes.find(u) != nodes.end()) {
+                    adjList_[i].erase(u);
+                    numEdges_ -= 1;
+                }
+            }
+        }
+    }
+}
+
+
 vector<vector<int>> Graph::get_edges() {
     vector<vector<int>> edges;
     for (int u = 0; u < numNodes_; u++) {

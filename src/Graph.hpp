@@ -51,6 +51,8 @@ class Graph
 
 		bool add_node(int u);
 		bool add_edge(int u, int v);
+		
+		void remove_nodes(set<int> nodes);
 
 		vector<vector<int>> get_edges();
 		set<int> get_neighbors(int u) {return adjList_[u];}

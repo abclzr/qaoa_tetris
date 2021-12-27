@@ -164,6 +164,21 @@ TEST_F(GraphTest, UndirectedGraphDegreeTest) {
 }
 
 
+TEST_F(GraphTest, RemoveNodesTest) {
+   Graph g = generate_fig5(true);
+   set<int> nodes = {0};
+   g.remove_nodes(nodes);
+   vector<vector<int>> edges = {{1, 4}, {1, 5}, {2, 6}, {3, 7}, {5, 6}, {6, 8}};
+   EXPECT_THAT(g.get_edges(), testing::UnorderedElementsAreArray(edges));
+
+   g = generate_fig5(true);
+   nodes = {1, 2, 3};
+   g.remove_nodes(nodes);
+   edges = {{5, 6}, {6, 8}};
+   EXPECT_THAT(g.get_edges(), testing::UnorderedElementsAreArray(edges));
+}
+
+
 TEST_F(GraphTest, DirectedGraphDAGTest) {
    Graph g = generate_fig5(true);
    Graph g_dag;
