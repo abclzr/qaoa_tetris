@@ -1,10 +1,8 @@
 #include "../src/Graph.hpp"
-#include <boost/graph/adjacency_list.hpp>
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-using namespace boost;
 using ::testing::_;
 
 // The fixture for testing class Foo.
@@ -23,68 +21,59 @@ class GraphTest : public ::testing::Test {
 
    // If the constructor and destructor are not enough for setting up
    // and cleaning up each test, you can define the following methods:
-   Graph::Graph_bst generate_line2() {
-      Graph::Graph_bst g(2);
-      add_edge(0, 1, g);
+   Graph generate_line2(bool directed = false) {
+      Graph g(2, directed);
+      g.add_edge(0, 1);
       return g;
    }
 
-   Graph::Graph_bst generate_line3() {
-      Graph::Graph_bst g(3);
-      add_edge(0, 1, g);
-      add_edge(1, 2, g);
+   Graph generate_line3(bool directed = false) {
+      Graph g(3, directed);
+      g.add_edge(0, 1);
+      g.add_edge(1, 2);
       return g;
    }
 
-   Graph::Graph_bst generate_triangle() {
-      Graph::Graph_bst g(3);
-      add_edge(0, 1, g);
-      add_edge(1, 2, g);
-      add_edge(2, 0, g);
+   Graph generate_triangle(bool directed = false) {
+      Graph g(3, directed);
+      g.add_edge(0, 1);
+      g.add_edge(1, 2);
+      g.add_edge(2, 0);
       return g;
    }
 
-   Graph::Graph_bst generate_square() {
-      Graph::Graph_bst g(3);
-      add_edge(0, 1, g);
-      add_edge(1, 2, g);
-      add_edge(2, 3, g);
-      add_edge(3, 0, g);
+   Graph generate_square(bool directed = false) {
+      Graph g(3, directed);
+      g.add_edge(0, 1);
+      g.add_edge(1, 2);
+      g.add_edge(2, 3);
+      g.add_edge(3, 0);
       return g;
    }
 
-   Graph::Graph_bst generate_clique(int n) {
-      Graph::Graph_bst g(n);
+   Graph generate_clique(int n, bool directed = false) {
+      Graph g(n, directed);
       for (int i = 0; i < n - 1; i++) {
          for (int j = i + 1; j < n; j++) {
-            add_edge(i, j, g);
+            g.add_edge(i, j);
          }
       }
       return g;
    }
 
-   Graph::Graph_bst generate_graph1() {
-      Graph::Graph_bst g(6);
-      add_edge(0, 1, g);
-      add_edge(0, 2, g);
-      add_edge(1, 2, g);
-      add_edge(1, 3, g);
-      add_edge(2, 3, g);
-      add_edge(0, 4, g);
-      add_edge(4, 5, g);
 
-      return g;
-   }
-
-   Graph::DGraph_bst generate_graph1_dag() {
-      Graph::DGraph_bst g(6);
-      add_edge(0, 1, g);
-      add_edge(0, 2, g);
-      add_edge(0, 4, g);
-      add_edge(1, 2, g);
-      add_edge(1, 3, g);
-      add_edge(2, 3, g);
-      add_edge(4, 5, g);
+   /**
+    * @brief This is the query graph in Figure 1.
+    * 
+    * @return Graph::Graph_bst 
+    */
+   Graph generate_fig1q() {
+      Graph g(4, false);
+      g.add_edge(0, 1);
+      g.add_edge(0, 2);
+      g.add_edge(1, 2);
+      g.add_edge(1, 3);
+      g.add_edge(2, 3);
 
       return g;
    }
@@ -94,32 +83,17 @@ class GraphTest : public ::testing::Test {
     * 
     * @return Graph::Graph_bst 
     */
-   Graph::Graph_bst generate_graph2() {
-      Graph::Graph_bst g(9);
-      add_edge(0, 1, g);
-      add_edge(0, 2, g);
-      add_edge(0, 3, g);
-      add_edge(1, 4, g);
-      add_edge(1, 5, g);
-      add_edge(2, 6, g);
-      add_edge(3, 7, g);
-      add_edge(5, 6, g);
-      add_edge(6, 8, g);
-
-      return g;
-   }
-
-   Graph::DGraph_bst generate_graph2_dag() {
-      Graph::DGraph_bst g(9);
-      add_edge(0, 1, g);
-      add_edge(0, 2, g);
-      add_edge(0, 3, g);
-      add_edge(1, 4, g);
-      add_edge(1, 5, g);
-      add_edge(2, 6, g);
-      add_edge(3, 7, g);
-      add_edge(5, 6, g);
-      add_edge(6, 8, g);
+   Graph generate_fig5(bool directed = false) {
+      Graph g(9, directed);
+      g.add_edge(0, 1);
+      g.add_edge(0, 2);
+      g.add_edge(0, 3);
+      g.add_edge(1, 4);
+      g.add_edge(1, 5);
+      g.add_edge(2, 6);
+      g.add_edge(3, 7);
+      g.add_edge(5, 6);
+      g.add_edge(6, 8);
 
       return g;
    }
@@ -137,29 +111,32 @@ class GraphTest : public ::testing::Test {
       // for Foo.
    };
 
-TEST_F(GraphTest, LoadFromFileSmall) {
+TEST_F(GraphTest, LoadFromFileTest) {
    vector<string> test_graph_names = {"line2", "line3", "triangle", "square", "clique4"};
-   vector<Graph::Graph_bst> correct_graphs = {
-      generate_line2(), 
-      generate_line3(),
-      generate_triangle(),
-      generate_square(),
-      generate_clique(4)
+   vector<Graph> correct_graphs = {
+      generate_line2(true), 
+      generate_line3(true),
+      generate_triangle(false),
+      generate_square(false),
+      generate_clique(4, true)
       };
+   vector<bool> graph_directed = {
+      true, true, false, false, true
+   };
 
    for (int i = 0; i < test_graph_names.size(); i++) {
       Graph g;
       // XXX: modify the current testing/working directory in cmakefile
       string test_graph_path = "../../test/graph/" + test_graph_names[i] + ".txt";
       ifstream graph_file(test_graph_path);
-      if (!graph_file.is_open() || !g.load_from_file(graph_file)) {
+      if (!graph_file.is_open() || !g.load_from_file(graph_file, graph_directed[i])) {
          cerr << "Cannot load graph file " << test_graph_path << ".\n";
          FAIL();
       } else {
          // TODO: We also need to check if edges are matched. Further, if nodes have labels, we need to check labels.
          // TODO: We need a function here to check if two bst graphs are the same. (both directed and undirected)
-         EXPECT_EQ(num_vertices(g.graph_), num_vertices(correct_graphs[i]));
-         EXPECT_EQ(num_edges(g.graph_), num_edges(correct_graphs[i]));
+         EXPECT_EQ(g.num_nodes(), correct_graphs[i].num_nodes());
+         EXPECT_EQ(g.num_edges(), correct_graphs[i].num_edges());
 
          graph_file.close();
       }
@@ -167,35 +144,49 @@ TEST_F(GraphTest, LoadFromFileSmall) {
    }
 }
 
-TEST_F(GraphTest, GenerateDAG) {
-   vector<pair<Graph::Graph_bst, int>> graphs = {
-      make_pair(generate_graph1(), 0),
-      make_pair(generate_graph2(), 1)
-      };
-
-
-   for (int i = 0; i < graphs.size(); i++) {
-      Graph g(graphs[i].first);
-      int rootIndex = graphs[i].second;
-      Graph::DGraph_bst dag = g.generate_dag(rootIndex);
-
-      // Check rootIndex is not in any adj list.
-      graph_traits <Graph::DGraph_bst>::vertex_iterator nodeI, nodeEnd;
-      graph_traits <Graph::DGraph_bst>::adjacency_iterator nbrI, nbrEnd;
-      for (boost::tie(nodeI, nodeEnd) = vertices(dag); nodeI != nodeEnd; ++nodeI)
-         for (boost::tie(nbrI, nbrEnd) = adjacent_vertices(*nodeI, dag); nbrI != nbrEnd; ++nbrI)
-            EXPECT_NE(*nbrI, rootIndex);
-
-      EXPECT_EQ(num_vertices(dag), num_vertices(g.graph_));
-      EXPECT_EQ(num_edges(dag), num_edges(g.graph_));
+TEST_F(GraphTest, DirectedGraphDegreeTest) {
+   Graph g = generate_fig5(true);
+   vector<int> in_degrees = {0, 1, 1, 1, 1, 1, 2, 1, 1};
+   vector<int> out_degrees = {3, 2, 1, 1, 0, 1, 1, 0, 0};
+   for (int i = 0; i < g.num_nodes(); i++) {
+      EXPECT_EQ(g.in_degree(i), in_degrees[i]);
+      EXPECT_EQ(g.out_degree(i), out_degrees[i]);
    }
 }
 
-TEST_F(GraphTest, GetCandidateSet) {
+
+TEST_F(GraphTest, UndirectedGraphDegreeTest) {
+   Graph g = generate_fig5(false);
+   vector<int> degrees = {3, 3, 2, 2, 1, 2, 3, 1, 1};
+   for (int i = 0; i < g.num_nodes(); i++) {
+      EXPECT_EQ(g.degree(i), degrees[i]);
+   }
+}
+
+
+TEST_F(GraphTest, DirectedGraphTopoIterTest) {
+   Graph g = generate_fig5(true);
+   Graph g_dag;
+   vector<vector<int>> edges = {{0, 1}, {0, 2}, {0, 3}, {1, 4}, {1, 5}, {2, 6}, {3, 7}, {5, 6}, {6, 8}};
+   EXPECT_THAT(g.generate_dag(0).get_edges(), edges);
+   edges = {{1, 4}, {1, 5}, {5, 6}, {6, 8}};
+   EXPECT_THAT(g.generate_dag(1).get_edges(), edges);
+}
+
+
+TEST_F(GraphTest, UndirectedGraphTopoIterTest) {
+   Graph g = generate_fig5(false);
+   Graph g_dag;
+   vector<vector<int>> edges = {{0, 1}, {0, 2}, {0, 3}, {1, 4}, {1, 5}, {2, 6}, {3, 7}, {5, 6}, {6, 8}};
+   EXPECT_THAT(g.generate_dag(0).get_edges(), testing::UnorderedElementsAreArray(edges));
+   edges = {{1, 0}, {1, 4}, {1, 5}, {0, 2}, {0, 3}, {2, 6}, {3, 7}, {5, 6}, {6, 8}};
+   EXPECT_THAT(g.generate_dag(1).get_edges(), testing::UnorderedElementsAreArray(edges));
+}
+
+TEST_F(GraphTest, CandidateSetTest) {
    Graph queryG, dataG;
-   queryG = Graph(generate_graph2());
-   vector<int> query_degrees = {3, 3, 2, 2, 1, 2, 3, 1, 1};
-   vector<vector<Graph::Graph_bst::vertex_descriptor>> correct_cs = {
+   queryG = generate_fig5(false);
+   vector<set<int>> correct_cs = {
       {7, 8, 9}, // degree 3
       {7, 8, 9}, // degree 3
       {1, 2, 4, 6, 7, 8, 9}, // degree 2
@@ -214,14 +205,8 @@ TEST_F(GraphTest, GetCandidateSet) {
       FAIL();
    }
 
-   graph_traits<Graph::Graph_bst>::vertex_iterator ui, ui_end;
-   int i = 0;
-   for (boost::tie(ui, ui_end) = boost::vertices(queryG.graph_); ui != ui_end; ++ui) {
-      EXPECT_EQ(*ui, i);
-      EXPECT_EQ(degree(*ui, queryG.graph_), query_degrees[i]);
-      vector<Graph::Graph_bst::vertex_descriptor> cs = queryG.get_candidate_set(*ui, dataG);
-      EXPECT_THAT(cs, testing::UnorderedElementsAreArray(correct_cs[i]));
-      i += 1;
+   for (int i = 0; i < queryG.num_nodes(); i++) {
+      EXPECT_THAT(queryG.get_candidate_set(i, dataG), testing::UnorderedElementsAreArray(correct_cs[i]));
    }
 }
 
