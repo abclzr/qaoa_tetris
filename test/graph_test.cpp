@@ -228,7 +228,7 @@ TEST_F(GraphTest, CandidateSetTest) {
       cerr << "Cannot load graph file ../../test/graph/10_1_0.txt.\n";
       FAIL();
    }
-
+   dataGraphFile.close();
    for (int i = 0; i < queryG.num_nodes(); i++) {
       EXPECT_THAT(queryG.get_candidate_set(i, dataG), testing::UnorderedElementsAreArray(correctCS[i]));
    }

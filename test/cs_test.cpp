@@ -56,12 +56,14 @@ TEST_F(CSTest, InitCSTest) {
         cerr << "Cannot load query graph file ../../test/graph/fig1q.txt.\n";
         FAIL();
     }
+    queryGraphFile.close();
     string dataGraphPath = "../../test/graph/fig1d.txt";
     ifstream dataGraphFile(dataGraphPath);
     if (!dataGraphFile.is_open() || !dataG.load_from_file(dataGraphFile)) {
         cerr << "Cannot load data graph file ../../test/graph/fig1d.txt.\n";
         FAIL();
     }
+    dataGraphFile.close();
     GraphMatch gm(queryG, dataG);
     Graph initCS(true);
     unordered_map<int, unordered_map<int, int>> uv2id;
@@ -93,6 +95,7 @@ TEST_F(CSTest, RefineCSTest) {
         cerr << "Cannot load query graph file ../../test/graph/fig1q.txt.\n";
         FAIL();
     }
+    queryGraphFile.close();
     Graph queryDAG = queryG.generate_dag(0);
     
     GraphMatch gm;

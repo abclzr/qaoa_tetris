@@ -30,11 +30,11 @@ int main(int, char**) {
     }
 
     GraphMatch gm(qgraph, dgraph);
-    vector<vector<pair<int, int>>> result;
+    vector<unordered_map<int, int>> result;
     result = gm.subgraph_isomorphsim();
     cout << "subgraph isomorphsim finds " << result.size() << " results" << endl;
     for (int i = 0; i < result.size(); i++) {
-        cout << "subgraph " << i << "(q - d):" << endl;
+        cout << "subgraph " << i << "(d - q):" << endl;
         for (auto match : result[i]) {
             cout << "(" << match.first << " - " << match.second << ") | ";
         }

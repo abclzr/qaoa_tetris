@@ -11,8 +11,9 @@ endmacro()
 
 package_add_test_with_libraries(graph_test graph_test.cpp "${PROJECT_SOURCE_DIR}/test/graph" graph)
 
-package_add_test_with_libraries(cs_test cs_test.cpp "${PROJECT_SOURCE_DIR}/test/graph" graph graph_match )
+package_add_test_with_libraries(cs_test cs_test.cpp "${PROJECT_SOURCE_DIR}/test/graph" graph graph_match)
 
+package_add_test_with_libraries(subiso_test subiso_test.cpp "${PROJECT_SOURCE_DIR}/test/graph" graph graph_match )
 
 # Test
 # package_add_test(graph_test graph_test.cpp)

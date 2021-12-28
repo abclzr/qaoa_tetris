@@ -5,7 +5,7 @@
 
 using namespace std;
 
-int GraphMatch::getRootNode() {
+int GraphMatch::get_root_node() {
     // FIXME use candidate_d(u) / degree_q(u) to get the root.
     // FIXME: add tests.
     // candidate_d(u) is the number of candidates in the data graph.
@@ -13,6 +13,26 @@ int GraphMatch::getRootNode() {
     // node v in the data graph that degree_d(v) >= degree_q(u)
     return 0;
 }
+
+
+int GraphMatch::get_next_node(unordered_map<int, int> &M, 
+                                Graph &queryDAG,
+                                Graph &CS,
+                                unordered_map<int, unordered_map<int, int>> &uv2id, 
+                                unordered_map<int, pair<int, int>> &id2uv) {
+    // FIXME: Use Sec 5.2 adaptive matching order (path size order) to find the next node.
+    // FIXME: Currently just return a random node from all available (dependency resolved) nodes.
+    vector<int> iterOrder = queryDAG.get_topo_order();
+    set<int> mapped_u;
+    for (auto it : M) mapped_u.insert(it.second);
+    for (auto u : iterOrder) {
+        if (mapped_u.find(u) == mapped_u.end()) {
+            return u;
+        }
+    }
+    return -1; // Should not reach here.
+}
+
 
 // XXX: add comments
 void GraphMatch::build_init_CS(Graph &initCS, 
@@ -65,9 +85,9 @@ bool GraphMatch::refine_CS_wrapper(Graph &CS,
 
 // FIXME: add comments and rename variables based on paper/comment
 bool GraphMatch::refine_CS(Graph &CS, 
-                                unordered_map<int, unordered_map<int, int>> &uv2id,
-                                unordered_map<int, pair<int, int>> &id2uv,
-                                Graph &queryDAG) {
+                            unordered_map<int, unordered_map<int, int>> &uv2id,
+                            unordered_map<int, pair<int, int>> &id2uv,
+                            Graph &queryDAG) {
     set<int> filtered_nodes;
     // Iterate all nodes in reversed topo order
     vector<int> iterOrder = queryDAG.get_reversed_topo_order();
@@ -80,7 +100,7 @@ bool GraphMatch::refine_CS(Graph &CS,
         for (auto vi : C_u) {
             int v = vi.first, id = vi.second;
             // Get all v's unfiltered children in CS
-            set<int> v_children = CS.get_neighbors(v);
+            set<int> v_children = CS.get_neighbors(id);
             set<int> v_children_u;
             // for each v's child, get its u
             for (auto v_child : v_children) {
@@ -152,25 +172,99 @@ void GraphMatch::build_weight_array(unordered_map<int, int>  &weightArray,
 void GraphMatch::build_CS() {
     csG_ = Graph(true);
     // FIXME:Pre-store all candidate_set to a variable.
-    unordered_map<int, unordered_map<int, int>> uv2id;
-    unordered_map<int, pair<int, int>> id2uv;
-    build_init_CS(csG_, uv2id, id2uv);
+    build_init_CS(csG_, uv2id_, id2uv_);
 
     int direction = 1; // 0: reversed
     while (true) {
-        if (refine_CS_wrapper(csG_, uv2id, id2uv, queryDAG_, direction) == false) {
+        // csG_.print_adjList();
+        if (refine_CS_wrapper(csG_, uv2id_, id2uv_, queryDAG_, direction) == false) {
             break;
         }
         direction = 1 - direction;
     }
 
-    build_weight_array(weightArray_, queryDAG_, csG_, uv2id, id2uv);
+    build_weight_array(weightArray_, queryDAG_, csG_, uv2id_, id2uv_);
 }
 
 
-vector<vector<pair<int, int>>> GraphMatch::subgraph_isomorphsim() {
+// FIXME: double check if M and M_prime both needed
+void GraphMatch::backtrack(unordered_map<int, int> &M, 
+                            unordered_map<int, int> &M_prime, 
+                            vector<unordered_map<int, int>> &allM_prime, 
+                            int count) {
+    if (M_prime.size() == queryG_.num_nodes()) {
+        if (allM_prime.size() < count) {
+            allM_prime.emplace_back(M_prime);
+        }
+        return;
+    } else if (M.size() == 0) {
+        int u = get_root_node();
+        auto C_u = uv2id_[u];
+        for (auto vi : C_u) {
+            int v = vi.first;
+            M[v] = u;
+            M_prime[u] = v;
+            backtrack(M, M_prime, allM_prime, count);
+            M.erase(v);
+            M_prime.erase(u);
+        }
+    } else {
+        int u = get_next_node(M, queryDAG_, csG_, uv2id_, id2uv_);
+        // Get extendable candidates
+        // XXX: make the following a seperate function and add tests
+        // XXX: improve the implementation by using set_intersectoni
+        auto u_parents = revQueryDAG_.get_neighbors(u);
+        vector<set<int>> EC_u_parents(u_parents.size());
+        int i = 0;
+        for (auto u_parent : u_parents) {
+            int u_parent_v = M_prime[u_parent];
+            int u_parent_id = uv2id_[u_parent][u_parent_v];
+            auto u_parent_id_nbr_id = csG_.get_neighbors(u_parent_id);
+            for (auto id : u_parent_id_nbr_id) {
+                EC_u_parents[i].insert(id2uv_[id].second);
+            }
+            i += 1;
+        }
+        unordered_map<int, int> counter;
+        for (auto EC_u_parent : EC_u_parents) {
+            for (auto v : EC_u_parent) {
+                counter[v]++;
+            }
+        }
+        set<int> EC_u;
+        for (auto it : counter) {
+            int v = it.first, count = it.second;
+            if (count == u_parents.size()) {
+                EC_u.insert(v);
+            }
+        }
+
+        for (auto v : EC_u) {
+            if (M.find(v) == M.end()) {
+                M[v] = u;
+                M_prime[u] = v;
+                backtrack(M, M_prime, allM_prime, count);
+                M.erase(v);
+                M_prime.erase(u);
+            }
+        }        
+    }
+}
+
+
+vector<unordered_map<int, int>> GraphMatch::subgraph_isomorphsim(int count) {
 
     build_CS();
 
-    return {};
+    unordered_map<int, int> M; // v to u
+    unordered_map<int, int> M_prime; // u to v
+    vector<unordered_map<int, int>> allM_prime;
+    backtrack(M, M_prime, allM_prime, count);
+
+    if (allM_prime.size() >= count) {
+        return vector<unordered_map<int, int>>(allM_prime.begin(), allM_prime.begin() + count);
+    } else {
+        return allM_prime;
+    }
+
 }

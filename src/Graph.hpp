@@ -12,6 +12,7 @@
 #define GRAPH_H
 #pragma once
 
+#include <iostream>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -56,9 +57,21 @@ class Graph
 
 		vector<vector<int>> get_edges();
 		set<int> get_neighbors(int u) {return adjList_[u];}
+		
 		bool has_edge(int u, int v) {
 			return adjList_[u].find(v) != adjList_[u].end();
 		}
+
+		void print_adjList() {
+			for (int i = 0; i < numNodes_; i++) {
+				cout << "Node " << i << ": ";
+				for (auto j : adjList_[i]) {
+					cout << j << ", ";
+				}
+				cout << endl;
+			}
+		}
+
 
 		int in_degree(int u);
 		int out_degree(int u);
