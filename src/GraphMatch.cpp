@@ -46,14 +46,15 @@ void GraphMatch::build_init_CS(Graph &initCS,
 bool GraphMatch::refine_CS_wrapper(Graph &CS, 
                                     unordered_map<int, unordered_map<int, int>> &uv2id,
                                     unordered_map<int, pair<int, int>> &id2uv,
+                                    Graph &queryDAG,
                                     int reversed) {
     bool changed = false;
     if (reversed == 0) { // 0: original dag
-        changed =  refine_CS(CS, uv2id, id2uv, queryDAG_);
+        changed =  refine_CS(CS, uv2id, id2uv, queryDAG);
     } else {
         // XXX: reversed queryDAG won't change, prestore to some variable.
         Graph revCS = CS.generate_reversed_graph();
-        Graph revQueryDAG = queryDAG_.generate_reversed_graph();
+        Graph revQueryDAG = queryDAG.generate_reversed_graph();
         changed = refine_CS(revCS, uv2id, id2uv, revQueryDAG);
         CS = revCS.generate_reversed_graph();
     }
@@ -106,27 +107,27 @@ bool GraphMatch::refine_CS(Graph &CS,
 }
 
 
-Graph GraphMatch::build_CS() {
-    Graph CS(true);
+void GraphMatch::build_CS() {
+    csG_ = Graph(true);
     // FIXME:Pre-store all candidate_set to a variable.
     unordered_map<int, unordered_map<int, int>> uv2id;
     unordered_map<int, pair<int, int>> id2uv;
-    build_init_CS(CS, uv2id, id2uv);
+    build_init_CS(csG_, uv2id, id2uv);
 
     int direction = 1; // 0: reversed
     while (true) {
-        if (refine_CS_wrapper(CS, uv2id, id2uv, direction) == false) {
+        if (refine_CS_wrapper(csG_, uv2id, id2uv, queryDAG_, direction) == false) {
             break;
         }
         direction = 1 - direction;
     }
 
-    return CS;
+
 }
 
 vector<vector<pair<int, int>>> GraphMatch::subgraph_isomorphsim() {
 
-    csG_ = build_CS();
+    build_CS();
 
     return {};
 }

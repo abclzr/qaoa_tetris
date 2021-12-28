@@ -51,7 +51,7 @@ TEST_F(CSTest, InitCSTest) {
     Graph initCS(true);
     unordered_map<int, unordered_map<int, int>> uv2id;
     unordered_map<int, pair<int, int>> id2uv;
-    gm.test_init_CS(initCS, uv2id, id2uv);
+    gm.build_init_CS(initCS, uv2id, id2uv);
 
     auto edges = initCS.get_edges();
     // For each edge in the init cs, we check if edge(u, u') and edge(v, v')
@@ -112,7 +112,7 @@ TEST_F(CSTest, RefineCSTest) {
         edges.insert(edge);
     }
 
-    changed = gm.test_refine_CS(initCS, uv2id, id2uv, queryDAG, 1);
+    changed = gm.refine_CS_wrapper(initCS, uv2id, id2uv, queryDAG, 1);
     EXPECT_EQ(changed, true);
     EXPECT_EQ(initCS.num_edges(), 15);
     edges.erase({1, 8});
@@ -120,7 +120,7 @@ TEST_F(CSTest, RefineCSTest) {
     edges.erase({8, 10});
     EXPECT_THAT(initCS.get_edges(), testing::UnorderedElementsAreArray(edges));
 
-    changed = gm.test_refine_CS(initCS, uv2id, id2uv, queryDAG, 0);
+    changed = gm.refine_CS_wrapper(initCS, uv2id, id2uv, queryDAG, 0);
     EXPECT_EQ(changed, true);
     EXPECT_EQ(initCS.num_edges(), 12);
     edges.erase({1, 7});
@@ -128,7 +128,7 @@ TEST_F(CSTest, RefineCSTest) {
     edges.erase({7, 6});
     EXPECT_THAT(initCS.get_edges(), testing::UnorderedElementsAreArray(edges));
 
-    changed = gm.test_refine_CS(initCS, uv2id, id2uv, queryDAG, 1);
+    changed = gm.refine_CS_wrapper(initCS, uv2id, id2uv, queryDAG, 1);
     EXPECT_EQ(changed, true);
     EXPECT_EQ(initCS.num_edges(), 8);
     edges.erase({0, 5});
@@ -137,7 +137,7 @@ TEST_F(CSTest, RefineCSTest) {
     edges.erase({6, 9});
     EXPECT_THAT(initCS.get_edges(), testing::UnorderedElementsAreArray(edges));
 
-    changed = gm.test_refine_CS(initCS, uv2id, id2uv, queryDAG, 0);
+    changed = gm.refine_CS_wrapper(initCS, uv2id, id2uv, queryDAG, 0);
     EXPECT_EQ(changed, false);
 }
 
