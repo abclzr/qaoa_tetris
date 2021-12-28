@@ -20,6 +20,21 @@ class CSTest : public ::testing::Test {
       // You can do clean-up work that doesn't throw exceptions here.
    }
 
+    Graph generate_fig5(bool directed = false) {
+        Graph g(9, directed);
+        g.add_edge(0, 1);
+        g.add_edge(0, 2);
+        g.add_edge(0, 3);
+        g.add_edge(1, 4);
+        g.add_edge(1, 5);
+        g.add_edge(2, 6);
+        g.add_edge(3, 7);
+        g.add_edge(5, 6);
+        g.add_edge(6, 8);
+
+        return g;
+    }
+
    void SetUp() override {
       // Code here will be called immediately after the constructor (right
       // before each test).
@@ -139,6 +154,62 @@ TEST_F(CSTest, RefineCSTest) {
 
     changed = gm.refine_CS_wrapper(initCS, uv2id, id2uv, queryDAG, 0);
     EXPECT_EQ(changed, false);
+}
+
+
+TEST_F(CSTest, BuildWeightArrayTest) {
+    Graph queryDAG = generate_fig5(true);
+    Graph initCS(true);
+    unordered_map<int, unordered_map<int, int>> uv2id;
+    unordered_map<int, pair<int, int>> id2uv;
+    // Build CS in Figure 5b
+    Graph CS(23, true);
+    // Add edges
+    vector<vector<int>> edges = {
+        {1, 2, 3, 4, 5, 6}, {7, 8, 9}, {7, 8, 10}, {15}, {16}, {17},
+        {11, 12, 13, 14}, {}, {}, {15, 16}, {17}, {}, {}, {}, {},
+        {18, 19}, {18, 19, 20, 21, 22}, {20}, {}, {}, {}, {}, {}
+    };
+    for (int u = 0; u < 23; u++) {
+        for (auto v : edges[u]) {
+            CS.add_edge(u, v);
+        }
+    }
+    EXPECT_EQ(CS.num_edges(), 30);
+    // Build uv2id
+    vector<vector<int>> u2id = {
+        {0}, {1, 2}, {3, 4, 5}, {6},
+        {7, 8}, {9, 10}, {15, 16, 17}, 
+        {11, 12, 13, 14}, {18, 19, 20, 21, 22}
+    };
+    vector<vector<int>> u2v = {
+        {0}, {1, 2}, {3, 4, 5}, {1},
+        {0, 6}, {7, 8}, {9, 10, 11}, 
+        {11, 12, 13, 14}, {15, 16, 17, 18, 19}
+    };
+    int id = 0;
+    for (int u = 0; u < u2v.size(); u++) {
+        for (int j = 0; j < u2v[u].size(); j++) {
+            int v = u2v[u][j], id = u2id[u][j];
+            uv2id[u][v] = id;
+            id2uv[id] = make_pair(u, v);
+            id++;
+        }
+    }
+    
+    GraphMatch gm;
+    unordered_map<int, int> weightArray;
+    gm.build_weight_array(weightArray, queryDAG, CS, uv2id, id2uv);
+    unordered_map<int, int> correctWeightArray; // Figure 5c
+    for (int u = 0; u < 23; u++) correctWeightArray[u] = 1;
+    correctWeightArray[0] = 2;
+    correctWeightArray[6] = 4;
+    correctWeightArray[15] = 2;
+    correctWeightArray[16] = 5;
+
+    for (int u = 0; u < 23; u++) {
+        EXPECT_EQ(weightArray[u], correctWeightArray[u]);
+    }
 }
 
 

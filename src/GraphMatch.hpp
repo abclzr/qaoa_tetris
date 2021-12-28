@@ -25,7 +25,7 @@ private:
 	Graph queryDAG_;
 	Graph dataG_;
 	Graph csG_;
-	Graph weightArray_;
+	unordered_map<int, int>  weightArray_;
 
 
 	bool refine_CS(Graph &initCS, 
@@ -64,6 +64,12 @@ public:
 							unordered_map<int, pair<int, int>> &id2uv,
 							Graph &queryDAG,
 							int reversed);
+
+	void build_weight_array(unordered_map<int, int> &weightedArray,
+							Graph &queryDAG, 
+							Graph &CS,
+							unordered_map<int, unordered_map<int, int>> &uv2id,
+							unordered_map<int, pair<int, int>> &id2uv);
 
 };
 #endif

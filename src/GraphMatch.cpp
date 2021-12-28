@@ -1,6 +1,7 @@
 #include "GraphMatch.hpp"  
 
 #include <unordered_map>
+#include <algorithm>
 
 using namespace std;
 
@@ -107,6 +108,47 @@ bool GraphMatch::refine_CS(Graph &CS,
 }
 
 
+void GraphMatch::build_weight_array(unordered_map<int, int>  &weightArray,
+                                    Graph &queryDAG, 
+                                    Graph &CS,
+                                    unordered_map<int, unordered_map<int, int>> &uv2id,
+                                    unordered_map<int, pair<int, int>> &id2uv) {
+    // Iterate all nodes in queryDAG in reversed topo order.
+    // Case 1: If a node u has a child u' that has in_degree > 1. All v in C(u) has w(u, v) = 1
+    // Case 2: Else for each v in C(u), sum w(u', v') for each u' and v' in C(u') while v' is v's child.
+    // w(u, v) = the minimum sum w(u', v') of all u'.
+    vector<int> iterOrder = queryDAG.get_reversed_topo_order();
+    for (int u : iterOrder) {
+        set<int> u_children = queryDAG.get_neighbors(u);
+        auto C_u = uv2id[u];
+        if (any_of(u_children.begin(), u_children.end(), 
+            [&](int u_prime){
+                return queryDAG.in_degree(u_prime) > 1;
+                }) || 
+            u_children.size() == 0) { // Case 1
+            // Set w(u, v) to 1 for all v in C(u).
+            for (auto vi : C_u) {
+                int v = vi.first, id = vi.second;
+                weightArray[id] = 1;
+            }
+        } else {
+            for (auto vi : C_u) {
+                int v = vi.first, id = vi.second;
+                unordered_map<int, int> weights;
+
+                set<int> id_children = CS.get_neighbors(id);
+                for (auto id_prime : id_children) {
+                    int u_prime = id2uv[id_prime].first;
+                    weights[u_prime] += weightArray[id_prime];
+                }
+                weightArray[id] = (*min_element(weights.begin(), weights.end(), 
+                   [](const auto& lhs, const auto& rhs){ return lhs.second < rhs.second;})).second;
+            }
+        }
+    }
+}
+
+
 void GraphMatch::build_CS() {
     csG_ = Graph(true);
     // FIXME:Pre-store all candidate_set to a variable.
@@ -122,8 +164,9 @@ void GraphMatch::build_CS() {
         direction = 1 - direction;
     }
 
-
+    build_weight_array(weightArray_, queryDAG_, csG_, uv2id, id2uv);
 }
+
 
 vector<vector<pair<int, int>>> GraphMatch::subgraph_isomorphsim() {
 
