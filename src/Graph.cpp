@@ -42,6 +42,10 @@ void Graph::remove_nodes(set<int> nodes) {
     for (int i = 0; i < numNodes_; i++) {
         if (nodes.find(i) != nodes.end()) {
             numEdges_ -= adjList_[i].size();
+            out_degree_[i] -= adjList_[i].size();
+            for (auto node : adjList_[i]) {
+                in_degree_[node] -= 1;
+            }
             adjList_[i] = set<int>();
         } else {
             set<int> i_nbrs = adjList_[i];
@@ -49,6 +53,8 @@ void Graph::remove_nodes(set<int> nodes) {
                 if (nodes.find(u) != nodes.end()) {
                     adjList_[i].erase(u);
                     numEdges_ -= 1;
+                    in_degree_[u] -= 1;
+                    out_degree_[i] -= 1;
                 }
             }
         }

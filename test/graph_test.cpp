@@ -170,6 +170,12 @@ TEST_F(GraphTest, RemoveNodesTest) {
    g.remove_nodes(nodes);
    vector<vector<int>> edges = {{1, 4}, {1, 5}, {2, 6}, {3, 7}, {5, 6}, {6, 8}};
    EXPECT_THAT(g.get_edges(), testing::UnorderedElementsAreArray(edges));
+   vector<int> inDegrees = {0, 0, 0, 0, 1, 1, 2, 1, 1};
+   vector<int> outDegrees = {0, 2, 1, 1, 0, 1, 1, 0, 0};
+   for (int node = 0; node < g.num_nodes(); node++) {
+      EXPECT_EQ(g.in_degree(node), inDegrees[node]);
+      EXPECT_EQ(g.out_degree(node), outDegrees[node]);
+   }
 
    g = generate_fig5(true);
    nodes = {1, 2, 3};

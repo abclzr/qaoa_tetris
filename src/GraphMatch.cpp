@@ -141,11 +141,10 @@ void GraphMatch::build_weight_array(unordered_map<int, int>  &weightArray,
     for (int u : iterOrder) {
         set<int> u_children = queryDAG.get_neighbors(u);
         auto C_u = uv2id[u];
-        if (any_of(u_children.begin(), u_children.end(), 
+        if (all_of(u_children.begin(), u_children.end(), 
             [&](int u_prime){
                 return queryDAG.in_degree(u_prime) > 1;
-                }) || 
-            u_children.size() == 0) { // Case 1
+                })) { // Case 1
             // Set w(u, v) to 1 for all v in C(u).
             for (auto vi : C_u) {
                 int v = vi.first, id = vi.second;
@@ -212,7 +211,7 @@ void GraphMatch::backtrack(unordered_map<int, int> &M,
         int u = get_next_node(M, queryDAG_, csG_, uv2id_, id2uv_);
         // Get extendable candidates
         // XXX: make the following a seperate function and add tests
-        // XXX: improve the implementation by using set_intersectoni
+        // XXX: improve the implementation by using set_intersection
         auto u_parents = revQueryDAG_.get_neighbors(u);
         vector<set<int>> EC_u_parents(u_parents.size());
         int i = 0;
