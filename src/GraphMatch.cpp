@@ -41,22 +41,21 @@ void GraphMatch::build_init_CS(Graph &initCS,
 
     vector<int> revTopOrder = queryDAG_.get_reversed_topo_order();
     int initCSNodeIndex = 0;
-    // FIXME: chanmge to range based for loop
     for (auto u : revTopOrder) {
         set<int> u_candidate_set = queryG_.get_candidate_set(u, dataG_);
         // Each node in u_candidate_set is a node in initCS
-        for (auto vi = u_candidate_set.begin(); vi != u_candidate_set.end(); ++vi) {
+        for (auto v : u_candidate_set) {
             initCS.add_node(initCSNodeIndex);
-            uv2id[u][*vi] = initCSNodeIndex;
-            id2uv[initCSNodeIndex] = make_pair(u, *vi);
+            uv2id[u][v] = initCSNodeIndex;
+            id2uv[initCSNodeIndex] = make_pair(u, v);
             initCSNodeIndex++;
             // Check each u's out edge
             set<int> u_children = queryDAG_.get_neighbors(u);
-            for (auto u_primei = u_children.begin(); u_primei != u_children.end(); ++u_primei) {
-                set<int> u_child_candidate_set = queryG_.get_candidate_set(*u_primei, dataG_);
-                for (auto v_primei = u_child_candidate_set.begin(); v_primei != u_child_candidate_set.end(); ++v_primei) {
-                    if (dataG_.has_edge(*vi, *v_primei)) {
-                        initCS.add_edge(uv2id[u][*vi], uv2id[*u_primei][*v_primei]);
+            for (auto u_prime : u_children) {
+                set<int> u_child_candidate_set = queryG_.get_candidate_set(u_prime, dataG_);
+                for (auto v_prime : u_child_candidate_set) {
+                    if (dataG_.has_edge(v, v_prime)) {
+                        initCS.add_edge(uv2id[u][v], uv2id[u_prime][v_prime]);
                     }
                 }
             }
