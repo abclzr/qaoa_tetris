@@ -1,4 +1,5 @@
 #include "GraphMatch.hpp"  
+#include "Mapping.hpp"
 
 #include <unordered_map>
 #include <algorithm>
@@ -15,7 +16,7 @@ int GraphMatch::get_root_node() {
 }
 
 
-int GraphMatch::get_next_node(unordered_map<int, int> &M, 
+int GraphMatch::get_next_node(Mapping &M, 
                                 Graph &queryDAG,
                                 Graph &CS,
                                 unordered_map<int, unordered_map<int, int>> &uv2id, 
@@ -23,10 +24,8 @@ int GraphMatch::get_next_node(unordered_map<int, int> &M,
     // FIXME: Use Sec 5.2 adaptive matching order (path size order) to find the next node.
     // FIXME: Currently just return a random node from all available (dependency resolved) nodes.
     vector<int> iterOrder = queryDAG.get_topo_order();
-    set<int> mapped_u;
-    for (auto it : M) mapped_u.insert(it.second);
     for (auto u : iterOrder) {
-        if (mapped_u.find(u) == mapped_u.end()) {
+        if (M.findQueryIdx(u) == false) {
             return u;
         }
     }
@@ -185,14 +184,12 @@ void GraphMatch::build_CS() {
 }
 
 
-// FIXME: double check if M and M_prime both needed
-void GraphMatch::backtrack(unordered_map<int, int> &M, 
-                            unordered_map<int, int> &M_prime, 
-                            vector<unordered_map<int, int>> &allM_prime, 
+void GraphMatch::backtrack(Mapping &M,
+                            vector<Mapping> &allM_prime, 
                             int count) {
-    if (M_prime.size() == queryG_.num_nodes()) {
+    if (M.size() == queryG_.num_nodes()) {
         if (allM_prime.size() < count) {
-            allM_prime.emplace_back(M_prime);
+            allM_prime.emplace_back(M);
         }
         return;
     } else if (M.size() == 0) {
@@ -200,11 +197,9 @@ void GraphMatch::backtrack(unordered_map<int, int> &M,
         auto C_u = uv2id_[u];
         for (auto vi : C_u) {
             int v = vi.first;
-            M[v] = u;
-            M_prime[u] = v;
-            backtrack(M, M_prime, allM_prime, count);
-            M.erase(v);
-            M_prime.erase(u);
+            M.update(u, v);
+            backtrack(M, allM_prime, count);
+            M.eraseByQueryIdx(u);
         }
     } else {
         int u = get_next_node(M, queryDAG_, csG_, uv2id_, id2uv_);
@@ -215,7 +210,7 @@ void GraphMatch::backtrack(unordered_map<int, int> &M,
         vector<set<int>> EC_u_parents(u_parents.size());
         int i = 0;
         for (auto u_parent : u_parents) {
-            int u_parent_v = M_prime[u_parent];
+            int u_parent_v = M.getDataIdx(u_parent);
             int u_parent_id = uv2id_[u_parent][u_parent_v];
             auto u_parent_id_nbr_id = csG_.get_neighbors(u_parent_id);
             for (auto id : u_parent_id_nbr_id) {
@@ -238,29 +233,26 @@ void GraphMatch::backtrack(unordered_map<int, int> &M,
         }
 
         for (auto v : EC_u) {
-            if (M.find(v) == M.end()) {
-                M[v] = u;
-                M_prime[u] = v;
-                backtrack(M, M_prime, allM_prime, count);
-                M.erase(v);
-                M_prime.erase(u);
+            if (M.findDataIdx(v) == false) {
+                M.update(u, v);
+                backtrack(M, allM_prime, count);
+                M.eraseByQueryIdx(u);
             }
         }        
     }
 }
 
 
-vector<unordered_map<int, int>> GraphMatch::subgraph_isomorphsim(int count) {
+vector<Mapping> GraphMatch::subgraph_isomorphsim(int count) {
 
     build_CS();
 
-    unordered_map<int, int> M; // v to u
-    unordered_map<int, int> M_prime; // u to v
-    vector<unordered_map<int, int>> allM_prime;
-    backtrack(M, M_prime, allM_prime, count);
+    Mapping M(queryG_.num_nodes());
+    vector<Mapping> allM_prime;
+    backtrack(M, allM_prime, count);
 
     if (allM_prime.size() >= count) {
-        return vector<unordered_map<int, int>>(allM_prime.begin(), allM_prime.begin() + count);
+        return vector<Mapping>(allM_prime.begin(), allM_prime.begin() + count);
     } else {
         return allM_prime;
     }

@@ -85,8 +85,6 @@ class Graph
 		vector<int> get_topo_order();
 		vector<int> get_reversed_topo_order();
 
-		
-
 		set<int> get_candidate_set(int u, Graph &g);
 
 };

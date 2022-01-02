@@ -104,7 +104,10 @@ bool Graph::load_from_file(ifstream &graphFile, bool directed) {
             return false;
         }        
     }
-    if (numEdges_ != numEdges) {
+    if (directed && numEdges_ != numEdges) {
+        return false;
+    }
+    if (!directed && numEdges_ != 2 * numEdges) {
         return false;
     }
 

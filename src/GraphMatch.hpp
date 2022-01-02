@@ -18,6 +18,7 @@
 #include <climits>
 
 #include "Graph.hpp"
+#include "Mapping.hpp"
 
 class GraphMatch
 {
@@ -57,14 +58,13 @@ public:
 	Graph &get_rev_query_dag() {return revQueryDAG_;}
 	Graph &get_data_G() {return dataG_;}
 
-	void backtrack(unordered_map<int, int> &M, 
-					unordered_map<int, int> &M_prime,
-					vector<unordered_map<int, int>> &allM, 
+	void backtrack(Mapping &M, 
+					vector<Mapping> &allM, 
 					int count=INT_MAX);
 
 	// XXX: Now a vector of int pairs is used to represent the matching from query to data. 
 	// It suppose to return an iterator(?) for practical use.
-	vector<unordered_map<int, int>> subgraph_isomorphsim(int count=INT_MAX);
+	vector<Mapping> subgraph_isomorphsim(int count=INT_MAX);
 
 
 	// XXX: These functions are supposed to be private (also for these args that are private varaibles)
@@ -72,7 +72,7 @@ public:
 	// https://stackoverflow.com/questions/47354280/what-is-the-best-way-of-testing-private-methods-with-googletest
 	
 
-	int get_next_node(unordered_map<int, int> &M,
+	int get_next_node(Mapping &M,
 						Graph &queryDAG, 
 						Graph &CS,
                         unordered_map<int, unordered_map<int, int>> &uv2id, 

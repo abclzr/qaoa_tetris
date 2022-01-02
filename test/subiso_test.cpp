@@ -1,5 +1,6 @@
 #include "../src/GraphMatch.hpp"
 #include "../src/Graph.hpp"
+#include "../src/Mapping.hpp"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -50,15 +51,15 @@ TEST_F(SubIsoTest, Figure1Test) {
     }
 
     GraphMatch gm(queryG, dataG);
-    vector<unordered_map<int, int>> result;
+    vector<Mapping> result;
     result = gm.subgraph_isomorphsim();
     cout << "subgraph isomorphsim finds " << result.size() << " results" << endl;
     for (int i = 0; i < result.size(); i++) {
-        auto M_prime = result[i];
+        auto M = result[i];
         // For each edge u u' in the queryG, we can find edge M[u], M[u'] in dataG
         for (auto edge : queryG.get_edges()) {
             int u = edge[0], u_prime = edge[1];
-            EXPECT_EQ(dataG.has_edge(M_prime[u], M_prime[u_prime]), true);
+            EXPECT_EQ(dataG.has_edge(M.getDataIdx(u), M.getDataIdx(u_prime)), true);
         }
     }
 }
@@ -81,15 +82,15 @@ TEST_F(SubIsoTest, TriangleTest) {
     }
 
     GraphMatch gm(queryG, dataG);
-    vector<unordered_map<int, int>> result;
+    vector<Mapping> result;
     result = gm.subgraph_isomorphsim();
     cout << "subgraph isomorphsim finds " << result.size() << " results" << endl;
     for (int i = 0; i < result.size(); i++) {
-        auto M_prime = result[i];
+        auto M = result[i];
         // For each edge u u' in the queryG, we can find edge M[u], M[u'] in dataG
         for (auto edge : queryG.get_edges()) {
             int u = edge[0], u_prime = edge[1];
-            EXPECT_EQ(dataG.has_edge(M_prime[u], M_prime[u_prime]), true);
+            EXPECT_EQ(dataG.has_edge(M.getDataIdx(u), M.getDataIdx(u_prime)), true);
         }
     }
 }
