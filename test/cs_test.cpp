@@ -88,15 +88,14 @@ TEST_F(CSTest, InitCSTest) {
 }
 
 TEST_F(CSTest, RefineCSTest) {
-    Graph queryG;
+    Graph queryDAG;
     string queryGraphPath = "../../test/graph/fig1q.txt";
     ifstream queryGraphFile(queryGraphPath);
-    if (!queryGraphFile.is_open() || !queryG.load_from_file(queryGraphFile)) {
+    if (!queryGraphFile.is_open() || !queryDAG.load_from_file(queryGraphFile, true)) {
         cerr << "Cannot load query graph file ../../test/graph/fig1q.txt.\n";
         FAIL();
     }
     queryGraphFile.close();
-    Graph queryDAG = queryG.generate_dag(0);
     
     GraphMatch gm;
     Graph initCS(true);
