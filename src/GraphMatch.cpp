@@ -206,29 +206,27 @@ void GraphMatch::backtrack(Mapping &M,
         // Get extendable candidates
         // XXX: make the following a seperate function and add tests
         // XXX: improve the implementation by using set_intersection
+        unordered_map<int, int> EC_id_count;
+        for (auto v  : queryG_.get_candidate_set(u, dataG_)) {
+            EC_id_count[uv2id_[u][v]] += 1;
+        }
         auto u_parents = revQueryDAG_.get_neighbors(u);
-        vector<unordered_set<int>> EC_u_parents(u_parents.size());
-        int i = 0;
         for (auto u_parent : u_parents) {
             int u_parent_v = M.getDataIdx(u_parent);
             int u_parent_id = uv2id_[u_parent][u_parent_v];
-            auto u_parent_id_nbr_id = csG_.get_neighbors(u_parent_id);
-            for (auto id : u_parent_id_nbr_id) {
-                EC_u_parents[i].insert(id2uv_[id].second);
-            }
-            i += 1;
-        }
-        unordered_map<int, int> counter;
-        for (auto EC_u_parent : EC_u_parents) {
-            for (auto v : EC_u_parent) {
-                counter[v]++;
+            auto u_parent_id_nbrs = csG_.get_neighbors(u_parent_id);
+            for (auto id : u_parent_id_nbrs) {
+                if (EC_id_count.find(id) != EC_id_count.end()) {
+                    EC_id_count[id] += 1;
+                }
             }
         }
+
         unordered_set<int> EC_u;
-        for (auto it : counter) {
-            int v = it.first, count = it.second;
-            if (count == u_parents.size()) {
-                EC_u.insert(v);
+        for (auto it : EC_id_count) {
+            int id = it.first, count = it.second;
+            if (count == u_parents.size() + 1) {
+                EC_u.insert(id2uv_[id].second);
             }
         }
 
