@@ -95,16 +95,20 @@ bool Graph::load_from_file(ifstream &graphFile, bool directed) {
     in_degree_.resize(numNodes_, 0);
     out_degree_.resize(numNodes_, 0);
     
-    // FIXME: check if the edge number is correct.
-    for (int i = 0; i < numEdges; i++) {
-        int n1, n2;
-        graphFile >> n1 >> n2;
+    int n1, n2;
+    while (graphFile >> n1 >> n2) {
         if (n1 >= numNodes_ || n2 >= numNodes_) {
             return false;
         }
         if (!add_edge(n1, n2)) {
             return false;
-        }
+        }        
+    }
+    if (directed && numEdges_ != numEdges) {
+        return false;
+    }
+    if (!directed && numEdges_ != 2 * numEdges) {
+        return false;
     }
 
     return true;

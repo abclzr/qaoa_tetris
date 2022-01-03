@@ -6,6 +6,7 @@
 
 #include "src/Graph.hpp"
 #include "src/GraphMatch.hpp"
+#include "src/Mapping.hpp"
 
 using namespace std;
 
@@ -63,15 +64,12 @@ int main(int, char**) {
     Graph dataGraph = QAOALinearPattern(10); // Pattern graph
 
     GraphMatch gm(queryGraph, dataGraph);
-    vector<unordered_map<int, int>> result;
+    vector<Mapping> result;
     result = gm.subgraph_isomorphsim(1);
     cout << "subgraph isomorphsim finds " << result.size() << " results" << endl;
     for (int i = 0; i < result.size(); i++) {
         cout << "subgraph " << i << "(d - q):" << endl;
-        for (auto match : result[i]) {
-            cout << "(" << match.first << " - " << match.second << ") | ";
-        }
-        cout << endl;
+        result[i].print();
     }
 
 
