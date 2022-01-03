@@ -53,10 +53,10 @@ Graph QAOALinearPattern(int n, int cycle=INT_MAX) {
 
 int main(int, char**) {
     Graph queryGraph;
-    string queryGraphPath = "../../test/graph/10_1_0.txt";
+    string queryGraphPath = "../test/graph/10_1_0.txt";
     ifstream queryGraphFile(queryGraphPath);
     if (!queryGraphFile.is_open() || !queryGraph.load_from_file(queryGraphFile)) {
-        cerr << "Cannot load query graph file ../../test/graph/10_1_0.txt.\n";
+        cerr << "Cannot load query graph file ../test/graph/10_1_0.txt.\n";
         return -1;
     }
     queryGraphFile.close();
