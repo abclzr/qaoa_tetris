@@ -1,4 +1,5 @@
 #include "Graph.hpp"
+#include <algorithm>
 #include <iostream>
 #include <queue>
 
@@ -28,7 +29,6 @@ bool Graph::add_edge(int u, int v) {
     }
     if (!directed_ && adjList_[v].find(u) == adjList_[v].end()) {
         adjList_[v].insert(u);
-        numEdges_ += 1;
         out_degree_[v] += 1;
         in_degree_[u] += 1;        
     }
@@ -36,8 +36,8 @@ bool Graph::add_edge(int u, int v) {
 }
 
 
-void Graph::remove_nodes(set<int> nodes) {
-    // FIXME: we are actually removing edges related to the node but 
+void Graph::remove_nodes(unordered_set<int> nodes) {
+    // XXX: we are actually removing edges related to the node but 
     // not remove nodes.
     for (int i = 0; i < numNodes_; i++) {
         if (nodes.find(i) != nodes.end()) {
@@ -46,9 +46,9 @@ void Graph::remove_nodes(set<int> nodes) {
             for (auto node : adjList_[i]) {
                 in_degree_[node] -= 1;
             }
-            adjList_[i] = set<int>();
+            adjList_[i] = unordered_set<int>();
         } else {
-            set<int> i_nbrs = adjList_[i];
+            unordered_set<int> i_nbrs = adjList_[i];
             for (auto u : i_nbrs) {
                 if (nodes.find(u) != nodes.end()) {
                     adjList_[i].erase(u);
@@ -104,10 +104,7 @@ bool Graph::load_from_file(ifstream &graphFile, bool directed) {
             return false;
         }        
     }
-    if (directed && numEdges_ != numEdges) {
-        return false;
-    }
-    if (!directed && numEdges_ != 2 * numEdges) {
+    if (numEdges_ != numEdges) {
         return false;
     }
 
@@ -125,13 +122,13 @@ Graph Graph::generate_dag(int u) {
     while (!q.empty()) {
         u = q.front();
         q.pop();
-        for (auto vi = adjList_[u].begin(); vi != adjList_[u].end(); ++vi) {
-            if (visited[*vi] == 0) {
-                visited[*vi] = 1;
-                q.emplace(*vi);
-                g.add_edge(u, *vi);
-            } else if (visited[*vi] == 1) {
-                g.add_edge(u, *vi);
+        for (auto vi : adjList_[u]) {
+            if (visited[vi] == 0) {
+                visited[vi] = 1;
+                q.emplace(vi);
+                g.add_edge(u, vi);
+            } else if (visited[vi] == 1) {
+                g.add_edge(u, vi);
             } else { // visited[*vi] == 2
                 continue;
             }
@@ -188,9 +185,9 @@ vector<int> Graph::get_reversed_topo_order() {
 }
 
 
-set<int> Graph::get_candidate_set(int u, Graph &g) {
+unordered_set<int> Graph::get_candidate_set(int u, Graph &g) {
     int u_degree = degree(u);
-    set<int> candidate_set;
+    unordered_set<int> candidate_set;
     for (int i = 0; i < g.num_nodes(); i++) {
         if (u_degree <= g.degree(i)) {
             candidate_set.insert(i);

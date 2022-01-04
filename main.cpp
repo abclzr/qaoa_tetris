@@ -3,12 +3,14 @@
 #include <algorithm>
 #include <utility>
 #include <vector>
+#include <chrono>
 
 #include "src/Graph.hpp"
 #include "src/GraphMatch.hpp"
 #include "src/Mapping.hpp"
 
 using namespace std;
+using namespace std::chrono;
 
 // XXX: Move the following pattern graph generation func to a lib
 // This cycle here is the "cylce" that excludes swap cycle.
@@ -65,7 +67,11 @@ int main(int, char**) {
 
     GraphMatch gm(queryGraph, dataGraph);
     vector<Mapping> result;
+    auto start = high_resolution_clock::now();
     result = gm.subgraph_isomorphsim(1);
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(stop - start);
+    cout << "Elapsed time: " << duration.count() / 1000 << " s." << endl;
     cout << "subgraph isomorphsim finds " << result.size() << " results" << endl;
     for (int i = 0; i < result.size(); i++) {
         cout << "subgraph " << i << "(d - q):" << endl;

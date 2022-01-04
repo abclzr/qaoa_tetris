@@ -41,7 +41,7 @@ void GraphMatch::build_init_CS(Graph &initCS,
     vector<int> revTopOrder = queryDAG_.get_reversed_topo_order();
     int initCSNodeIndex = 0;
     for (auto u : revTopOrder) {
-        set<int> u_candidate_set = queryG_.get_candidate_set(u, dataG_);
+        unordered_set<int> u_candidate_set = queryG_.get_candidate_set(u, dataG_);
         // Each node in u_candidate_set is a node in initCS
         for (auto v : u_candidate_set) {
             initCS.add_node(initCSNodeIndex);
@@ -49,9 +49,9 @@ void GraphMatch::build_init_CS(Graph &initCS,
             id2uv[initCSNodeIndex] = make_pair(u, v);
             initCSNodeIndex++;
             // Check each u's out edge
-            set<int> u_children = queryDAG_.get_neighbors(u);
+            unordered_set<int> u_children = queryDAG_.get_neighbors(u);
             for (auto u_prime : u_children) {
-                set<int> u_child_candidate_set = queryG_.get_candidate_set(u_prime, dataG_);
+                unordered_set<int> u_child_candidate_set = queryG_.get_candidate_set(u_prime, dataG_);
                 for (auto v_prime : u_child_candidate_set) {
                     if (dataG_.has_edge(v, v_prime)) {
                         initCS.add_edge(uv2id[u][v], uv2id[u_prime][v_prime]);
@@ -86,20 +86,20 @@ bool GraphMatch::refine_CS(Graph &CS,
                             unordered_map<int, unordered_map<int, int>> &uv2id,
                             unordered_map<int, pair<int, int>> &id2uv,
                             Graph &queryDAG) {
-    set<int> filtered_nodes;
+    unordered_set<int> filtered_nodes;
     // Iterate all nodes in reversed topo order
     vector<int> iterOrder = queryDAG.get_reversed_topo_order();
 
     for (auto u : iterOrder) {
         // Get all u's children in q_dag
-        set<int> u_children = queryDAG.get_neighbors(u);
+        unordered_set<int> u_children = queryDAG.get_neighbors(u);
         // For each u, we get its C(u) in CS
         auto C_u = uv2id[u];
         for (auto vi : C_u) {
             int v = vi.first, id = vi.second;
             // Get all v's unfiltered children in CS
-            set<int> v_children = CS.get_neighbors(id);
-            set<int> v_children_u;
+            unordered_set<int> v_children = CS.get_neighbors(id);
+            unordered_set<int> v_children_u;
             // for each v's child, get its u
             for (auto v_child : v_children) {
                 if (filtered_nodes.find(v_child) != filtered_nodes.end()) 
@@ -137,7 +137,7 @@ void GraphMatch::build_weight_array(unordered_map<int, int>  &weightArray,
     // w(u, v) = the minimum sum w(u', v') of all u'.
     vector<int> iterOrder = queryDAG.get_reversed_topo_order();
     for (int u : iterOrder) {
-        set<int> u_children = queryDAG.get_neighbors(u);
+        unordered_set<int> u_children = queryDAG.get_neighbors(u);
         auto C_u = uv2id[u];
         if (all_of(u_children.begin(), u_children.end(), 
             [&](int u_prime){
@@ -153,7 +153,7 @@ void GraphMatch::build_weight_array(unordered_map<int, int>  &weightArray,
                 int v = vi.first, id = vi.second;
                 unordered_map<int, int> weights;
 
-                set<int> id_children = CS.get_neighbors(id);
+                unordered_set<int> id_children = CS.get_neighbors(id);
                 for (auto id_prime : id_children) {
                     int u_prime = id2uv[id_prime].first;
                     weights[u_prime] += weightArray[id_prime];
@@ -207,7 +207,7 @@ void GraphMatch::backtrack(Mapping &M,
         // XXX: make the following a seperate function and add tests
         // XXX: improve the implementation by using set_intersection
         auto u_parents = revQueryDAG_.get_neighbors(u);
-        vector<set<int>> EC_u_parents(u_parents.size());
+        vector<unordered_set<int>> EC_u_parents(u_parents.size());
         int i = 0;
         for (auto u_parent : u_parents) {
             int u_parent_v = M.getDataIdx(u_parent);
@@ -224,7 +224,7 @@ void GraphMatch::backtrack(Mapping &M,
                 counter[v]++;
             }
         }
-        set<int> EC_u;
+        unordered_set<int> EC_u;
         for (auto it : counter) {
             int v = it.first, count = it.second;
             if (count == u_parents.size()) {

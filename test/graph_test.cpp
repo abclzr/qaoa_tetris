@@ -166,7 +166,7 @@ TEST_F(GraphTest, UndirectedGraphDegreeTest) {
 
 TEST_F(GraphTest, RemoveNodesTest) {
    Graph g = generate_fig5(true);
-   set<int> nodes = {0};
+   unordered_set<int> nodes = {0};
    g.remove_nodes(nodes);
    vector<vector<int>> edges = {{1, 4}, {1, 5}, {2, 6}, {3, 7}, {5, 6}, {6, 8}};
    EXPECT_THAT(g.get_edges(), testing::UnorderedElementsAreArray(edges));
@@ -184,31 +184,31 @@ TEST_F(GraphTest, RemoveNodesTest) {
    EXPECT_THAT(g.get_edges(), testing::UnorderedElementsAreArray(edges));
 }
 
-
-TEST_F(GraphTest, DirectedGraphDAGTest) {
-   Graph g = generate_fig5(true);
-   Graph g_dag;
-   vector<vector<int>> edges = {{0, 1}, {0, 2}, {0, 3}, {1, 4}, {1, 5}, {2, 6}, {3, 7}, {5, 6}, {6, 8}};
-   EXPECT_THAT(g.generate_dag(0).get_edges(), edges);
-   edges = {{1, 4}, {1, 5}, {5, 6}, {6, 8}};
-   EXPECT_THAT(g.generate_dag(1).get_edges(), edges);
-}
-
-
+// FIXME: Check no cycle.
+// We need to check 1) # of edges 2) each edge matches original edge 3) no cycle
 TEST_F(GraphTest, UndirectedGraphDAGTest) {
    Graph g = generate_fig5(false);
-   Graph g_dag;
-   vector<vector<int>> edges = {{0, 1}, {0, 2}, {0, 3}, {1, 4}, {1, 5}, {2, 6}, {3, 7}, {5, 6}, {6, 8}};
-   EXPECT_THAT(g.generate_dag(0).get_edges(), testing::UnorderedElementsAreArray(edges));
-   edges = {{1, 0}, {1, 4}, {1, 5}, {0, 2}, {0, 3}, {2, 6}, {3, 7}, {5, 6}, {6, 8}};
-   EXPECT_THAT(g.generate_dag(1).get_edges(), testing::UnorderedElementsAreArray(edges));
+   Graph g_dag = g.generate_dag(0);
+   EXPECT_EQ(g_dag.num_edges(), g.num_edges());
+   for (auto edge : g_dag.get_edges()) {
+      EXPECT_EQ(g.has_edge(edge[0], edge[1]), true);
+   }
+   g_dag = g.generate_dag(1);
+   EXPECT_THAT(g_dag.num_edges(), g.num_edges());
+   for (auto edge : g_dag.get_edges()) {
+      EXPECT_EQ(g.has_edge(edge[0], edge[1]), true);
+   }
+   // vector<vector<int>> edges = {{0, 1}, {0, 2}, {0, 3}, {1, 4}, {1, 5}, {2, 6}, {3, 7}, {6, 5}, {6, 8}};
+   // EXPECT_THAT(g.generate_dag(0).get_edges(), testing::UnorderedElementsAreArray(edges));
+   // edges = {{1, 0}, {1, 4}, {1, 5}, {0, 2}, {0, 3}, {2, 6}, {3, 7}, {5, 6}, {6, 8}};
+   // EXPECT_THAT(g.generate_dag(1).get_edges(), testing::UnorderedElementsAreArray(edges));
 }
 
 
 TEST_F(GraphTest, ReverseGraphTest) {
    Graph g_dag = generate_fig5(false).generate_dag(0);
    Graph reverse_g_dag = g_dag.generate_reversed_graph();
-   vector<vector<int>> edges = {{1, 0}, {2, 0}, {3, 0}, {4, 1}, {5, 1}, {6, 2}, {7, 3}, {6, 5}, {8, 6}};
+   vector<vector<int>> edges = {{1, 0}, {2, 0}, {3, 0}, {4, 1}, {5, 1}, {6, 2}, {7, 3}, {5, 6}, {8, 6}};
    EXPECT_THAT(reverse_g_dag.get_edges(), testing::UnorderedElementsAreArray(edges));
 }
 
@@ -244,7 +244,7 @@ TEST_F(GraphTest, CandidateSetTest) {
 TEST_F(GraphTest, TopoIterTest) {
    Graph g = generate_fig5(false).generate_dag(0);
    // FIXME Add more tests...
-   vector<int> topoOrder = {0, 3, 7, 2, 1, 5, 6, 8, 4};
+   vector<int> topoOrder = {0, 3, 7, 2, 6, 8, 1, 5, 4};
    EXPECT_EQ(g.get_topo_order(), topoOrder);
 }
 
@@ -252,7 +252,7 @@ TEST_F(GraphTest, TopoIterTest) {
 TEST_F(GraphTest, ReversedTopoIterTest) {
    Graph g = generate_fig5(false).generate_dag(0);
    // FIXME Add more tests...
-   vector<int> revTopoOrder = {4, 8, 6, 5, 1, 2, 7, 3, 0};
+   vector<int> revTopoOrder = {4, 5, 1, 8, 6, 2, 7, 3, 0};
    EXPECT_EQ(g.get_reversed_topo_order(), revTopoOrder);
 }
 
