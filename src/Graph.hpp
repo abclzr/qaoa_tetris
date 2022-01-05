@@ -16,7 +16,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
-#include <set>
+#include <unordered_set>
 
 using namespace std;
 
@@ -29,7 +29,7 @@ class Graph
 		bool directed_;
 		vector<int> in_degree_;
 		vector<int> out_degree_;
-		vector<set<int>> adjList_;
+		vector<unordered_set<int>> adjList_;
 
 		void topo_sort_util(int v, vector<bool> &visited, vector<int>& topo_order);
 
@@ -53,10 +53,10 @@ class Graph
 		bool add_node(int u);
 		bool add_edge(int u, int v);
 		
-		void remove_nodes(set<int> nodes);
+		void remove_nodes(unordered_set<int> nodes);
 
 		vector<vector<int>> get_edges();
-		set<int> get_neighbors(int u) {return adjList_[u];}
+		const unordered_set<int> &get_neighbors(int u) const {return adjList_[u];}
 		
 		bool has_edge(int u, int v) {
 			return adjList_[u].find(v) != adjList_[u].end();
@@ -85,9 +85,7 @@ class Graph
 		vector<int> get_topo_order();
 		vector<int> get_reversed_topo_order();
 
-		
-
-		set<int> get_candidate_set(int u, Graph &g);
+		unordered_set<int> get_candidate_set(int u, Graph &g);
 
 };
 #endif

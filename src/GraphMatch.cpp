@@ -1,4 +1,5 @@
 #include "GraphMatch.hpp"  
+#include "Mapping.hpp"
 
 #include <unordered_map>
 #include <algorithm>
@@ -15,7 +16,7 @@ int GraphMatch::get_root_node() {
 }
 
 
-int GraphMatch::get_next_node(unordered_map<int, int> &M, 
+int GraphMatch::get_next_node(Mapping &M, 
                                 Graph &queryDAG,
                                 Graph &revQueryDAG,
                                 unordered_map<int, int>  &weightArray,
@@ -31,15 +32,16 @@ int GraphMatch::get_next_node(unordered_map<int, int> &M,
     //.  each time M is updated by adding <u,v>, queue can be immediately updated by adding u_children
     //.  every backtrack also need to remove the added extendable u
     vector<int> iterOrder = queryDAG.get_topo_order();
-    set<int> mapped_u;
-    for (auto it : M) mapped_u.insert(it.second);
-    
+
     set<int> unmp_nodes;
+    set<int> mapped_u;
     for (auto u : iterOrder) {
-        if (mapped_u.find(u) == mapped_u.end()) {
+        if (M.findQueryIdx(u) == false) {
             unmp_nodes.insert(u);
+        }else{
+            mapped_u.insert(u);
         }
-    }
+
 
     /* using set difference to find unmapped nodes
     vector<int> unmp_nodes(iterOrder.size());
@@ -150,22 +152,21 @@ void GraphMatch::build_init_CS(Graph &initCS,
 
     vector<int> revTopOrder = queryDAG_.get_reversed_topo_order();
     int initCSNodeIndex = 0;
-    // FIXME: chanmge to range based for loop
     for (auto u : revTopOrder) {
-        set<int> u_candidate_set = queryG_.get_candidate_set(u, dataG_);
+        unordered_set<int> u_candidate_set = queryG_.get_candidate_set(u, dataG_);
         // Each node in u_candidate_set is a node in initCS
-        for (auto vi = u_candidate_set.begin(); vi != u_candidate_set.end(); ++vi) {
+        for (auto v : u_candidate_set) {
             initCS.add_node(initCSNodeIndex);
-            uv2id[u][*vi] = initCSNodeIndex;
-            id2uv[initCSNodeIndex] = make_pair(u, *vi);
+            uv2id[u][v] = initCSNodeIndex;
+            id2uv[initCSNodeIndex] = make_pair(u, v);
             initCSNodeIndex++;
             // Check each u's out edge
-            set<int> u_children = queryDAG_.get_neighbors(u);
-            for (auto u_primei = u_children.begin(); u_primei != u_children.end(); ++u_primei) {
-                set<int> u_child_candidate_set = queryG_.get_candidate_set(*u_primei, dataG_);
-                for (auto v_primei = u_child_candidate_set.begin(); v_primei != u_child_candidate_set.end(); ++v_primei) {
-                    if (dataG_.has_edge(*vi, *v_primei)) {
-                        initCS.add_edge(uv2id[u][*vi], uv2id[*u_primei][*v_primei]);
+            unordered_set<int> u_children = queryDAG_.get_neighbors(u);
+            for (auto u_prime : u_children) {
+                unordered_set<int> u_child_candidate_set = queryG_.get_candidate_set(u_prime, dataG_);
+                for (auto v_prime : u_child_candidate_set) {
+                    if (dataG_.has_edge(v, v_prime)) {
+                        initCS.add_edge(uv2id[u][v], uv2id[u_prime][v_prime]);
                     }
                 }
             }
@@ -197,20 +198,20 @@ bool GraphMatch::refine_CS(Graph &CS,
                             unordered_map<int, unordered_map<int, int>> &uv2id,
                             unordered_map<int, pair<int, int>> &id2uv,
                             Graph &queryDAG) {
-    set<int> filtered_nodes;
+    unordered_set<int> filtered_nodes;
     // Iterate all nodes in reversed topo order
     vector<int> iterOrder = queryDAG.get_reversed_topo_order();
 
     for (auto u : iterOrder) {
         // Get all u's children in q_dag
-        set<int> u_children = queryDAG.get_neighbors(u);
+        unordered_set<int> u_children = queryDAG.get_neighbors(u);
         // For each u, we get its C(u) in CS
         auto C_u = uv2id[u];
         for (auto vi : C_u) {
             int v = vi.first, id = vi.second;
             // Get all v's unfiltered children in CS
-            set<int> v_children = CS.get_neighbors(id);
-            set<int> v_children_u;
+            unordered_set<int> v_children = CS.get_neighbors(id);
+            unordered_set<int> v_children_u;
             // for each v's child, get its u
             for (auto v_child : v_children) {
                 if (filtered_nodes.find(v_child) != filtered_nodes.end()) 
@@ -248,13 +249,12 @@ void GraphMatch::build_weight_array(unordered_map<int, int>  &weightArray,
     // w(u, v) = the minimum sum w(u', v') of all u'.
     vector<int> iterOrder = queryDAG.get_reversed_topo_order();
     for (int u : iterOrder) {
-        set<int> u_children = queryDAG.get_neighbors(u);
+        unordered_set<int> u_children = queryDAG.get_neighbors(u);
         auto C_u = uv2id[u];
         if (all_of(u_children.begin(), u_children.end(), 
             [&](int u_prime){
                 return queryDAG.in_degree(u_prime) > 1;
-                }) || 
-            u_children.size() == 0) { // Case 1
+                })) { // Case 1
             // Set w(u, v) to 1 for all v in C(u).
             for (auto vi : C_u) {
                 int v = vi.first, id = vi.second;
@@ -265,7 +265,7 @@ void GraphMatch::build_weight_array(unordered_map<int, int>  &weightArray,
                 int v = vi.first, id = vi.second;
                 unordered_map<int, int> weights;
 
-                set<int> id_children = CS.get_neighbors(id);
+                unordered_set<int> id_children = CS.get_neighbors(id);
                 for (auto id_prime : id_children) {
                     int u_prime = id2uv[id_prime].first;
                     weights[u_prime] += weightArray[id_prime];
@@ -296,14 +296,12 @@ void GraphMatch::build_CS() {
 }
 
 
-// FIXME: double check if M and M_prime both needed
-void GraphMatch::backtrack(unordered_map<int, int> &M, 
-                            unordered_map<int, int> &M_prime, 
-                            vector<unordered_map<int, int>> &allM_prime, 
+void GraphMatch::backtrack(Mapping &M,
+                            vector<Mapping> &allM_prime, 
                             int count) {
-    if (M_prime.size() == queryG_.num_nodes()) {
+    if (M.size() == queryG_.num_nodes()) {
         if (allM_prime.size() < count) {
-            allM_prime.emplace_back(M_prime);
+            allM_prime.emplace_back(M);
         }
         return;
     } else if (M.size() == 0) {
@@ -311,11 +309,9 @@ void GraphMatch::backtrack(unordered_map<int, int> &M,
         auto C_u = uv2id_[u];
         for (auto vi : C_u) {
             int v = vi.first;
-            M[v] = u;
-            M_prime[u] = v;
-            backtrack(M, M_prime, allM_prime, count);
-            M.erase(v);
-            M_prime.erase(u);
+            M.update(u, v);
+            backtrack(M, allM_prime, count);
+            M.eraseByQueryIdx(u);
         }
     } else {
         int u = get_next_node(M, queryDAG_, revQueryDAG_, weightArray_, 
@@ -324,29 +320,26 @@ void GraphMatch::backtrack(unordered_map<int, int> &M,
                                 revQueryDAG_, csG_, uv2id_, id2uv_);
 
         for (auto v : EC_u) {
-            if (M.find(v) == M.end()) {
-                M[v] = u;
-                M_prime[u] = v;
-                backtrack(M, M_prime, allM_prime, count);
-                M.erase(v);
-                M_prime.erase(u);
+            if (M.findDataIdx(v) == false) {
+                M.update(u, v);
+                backtrack(M, allM_prime, count);
+                M.eraseByQueryIdx(u);
             }
         }        
     }
 }
 
 
-vector<unordered_map<int, int>> GraphMatch::subgraph_isomorphsim(int count) {
+vector<Mapping> GraphMatch::subgraph_isomorphsim(int count) {
 
     build_CS();
 
-    unordered_map<int, int> M; // v to u
-    unordered_map<int, int> M_prime; // u to v
-    vector<unordered_map<int, int>> allM_prime;
-    backtrack(M, M_prime, allM_prime, count);
+    Mapping M(queryG_.num_nodes());
+    vector<Mapping> allM_prime;
+    backtrack(M, allM_prime, count);
 
     if (allM_prime.size() >= count) {
-        return vector<unordered_map<int, int>>(allM_prime.begin(), allM_prime.begin() + count);
+        return vector<Mapping>(allM_prime.begin(), allM_prime.begin() + count);
     } else {
         return allM_prime;
     }

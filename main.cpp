@@ -3,11 +3,14 @@
 #include <algorithm>
 #include <utility>
 #include <vector>
+#include <chrono>
 
 #include "src/Graph.hpp"
 #include "src/GraphMatch.hpp"
+#include "src/Mapping.hpp"
 
 using namespace std;
+using namespace std::chrono;
 
 // XXX: Move the following pattern graph generation func to a lib
 // This cycle here is the "cylce" that excludes swap cycle.
@@ -52,10 +55,10 @@ Graph QAOALinearPattern(int n, int cycle=INT_MAX) {
 
 int main(int, char**) {
     Graph queryGraph;
-    string queryGraphPath = "../../test/graph/10_1_0.txt";
+    string queryGraphPath = "../test/graph/10_1_0.txt";
     ifstream queryGraphFile(queryGraphPath);
     if (!queryGraphFile.is_open() || !queryGraph.load_from_file(queryGraphFile)) {
-        cerr << "Cannot load query graph file ../../test/graph/10_1_0.txt.\n";
+        cerr << "Cannot load query graph file ../test/graph/10_1_0.txt.\n";
         return -1;
     }
     queryGraphFile.close();
@@ -63,15 +66,16 @@ int main(int, char**) {
     Graph dataGraph = QAOALinearPattern(10); // Pattern graph
 
     GraphMatch gm(queryGraph, dataGraph);
-    vector<unordered_map<int, int>> result;
+    vector<Mapping> result;
+    auto start = high_resolution_clock::now();
     result = gm.subgraph_isomorphsim(1);
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(stop - start);
+    cout << "Elapsed time: " << duration.count() / 1000 << " s." << endl;
     cout << "subgraph isomorphsim finds " << result.size() << " results" << endl;
     for (int i = 0; i < result.size(); i++) {
         cout << "subgraph " << i << "(d - q):" << endl;
-        for (auto match : result[i]) {
-            cout << "(" << match.first << " - " << match.second << ") | ";
-        }
-        cout << endl;
+        result[i].print();
     }
 
 
