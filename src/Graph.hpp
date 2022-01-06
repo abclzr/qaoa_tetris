@@ -31,6 +31,11 @@ class Graph
 		vector<int> out_degree_;
 		vector<unordered_set<int>> adjList_;
 
+		bool topo_order_need_update_ = true;
+		vector<int> topo_order_;
+		vector<int> rev_topo_order_;
+
+		void update_topo_order();
 		void topo_sort_util(int v, vector<bool> &visited, vector<int>& topo_order);
 
 	public:
@@ -82,8 +87,8 @@ class Graph
 		Graph generate_dag(int u);
 		Graph generate_reversed_graph();
 
-		vector<int> get_topo_order();
-		vector<int> get_reversed_topo_order();
+		vector<int> & get_topo_order();
+		vector<int> & get_reversed_topo_order();
 
 		unordered_set<int> get_candidate_set(int u, Graph &g);
 

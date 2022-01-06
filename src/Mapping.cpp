@@ -36,7 +36,7 @@ bool Mapping::findDataIdx(int dataIdx) {
 void Mapping::print() {
     for (auto it : mapping_) {
         if (it.first >= offset_) continue;
-        cout << it.first << " " << it.second << " | ";
+        cout << it.first << " " << it.second  - offset_ << " | ";
     }
     cout << endl;
 }

@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 #include <chrono>
+#include <cstdlib>
 
 #include "src/Graph.hpp"
 #include "src/GraphMatch.hpp"
@@ -26,10 +27,12 @@ Graph QAOALinearPattern(int n, int cycle=INT_MAX) {
             for (int p = 0; p < n - 1; p += 2) {
                 g.add_edge(pi[p], pi[p + 1]);
             }
+            curCycle++;
         } else if (t % 4 == 1) {
             for (int p = 1; p < n - 1; p += 2) {
                 g.add_edge(pi[p], pi[p + 1]);
             }
+            curCycle++;
         } else if (t % 4 == 2) {
             for (int p = 1; p < n - 1; p += 2) {
                 swap(pi[p], pi[p + 1]);
@@ -39,7 +42,6 @@ Graph QAOALinearPattern(int n, int cycle=INT_MAX) {
                 swap(pi[p], pi[p + 1]);
             }
         }
-        curCycle++;
         if (curCycle == cycle) return g;
     }
     if (n % 2 == 1) {
@@ -53,28 +55,46 @@ Graph QAOALinearPattern(int n, int cycle=INT_MAX) {
     return g;
 }
 
-int main(int, char**) {
+int main(int argc, char *argv[]) {
     Graph queryGraph;
-    string queryGraphPath = "../test/graph/10_1_0.txt";
+    string queryGraphPath = argv[1];
     ifstream queryGraphFile(queryGraphPath);
     if (!queryGraphFile.is_open() || !queryGraph.load_from_file(queryGraphFile)) {
-        cerr << "Cannot load query graph file ../test/graph/10_1_0.txt.\n";
+        cerr << "Cannot load query graph file " << queryGraphPath << ".\n";
         return -1;
     }
     queryGraphFile.close();
 
-    Graph dataGraph = QAOALinearPattern(10); // Pattern graph
+    int npattern = atoi(argv[2]);
 
-    GraphMatch gm(queryGraph, dataGraph);
+    
     vector<Mapping> result;
     auto start = high_resolution_clock::now();
-    result = gm.subgraph_isomorphsim(1);
+    int iter = npattern % 2 == 0 ? 1 : 2;
+    for (; iter <= npattern; iter++) {
+        Graph dataGraph = QAOALinearPattern(npattern, iter); // Pattern graph
+        GraphMatch gm(queryGraph, dataGraph);
+        result = gm.subgraph_isomorphsim(1);
+        if (result.size() > 0) {
+            break;
+        }
+    }
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(stop - start);
-    cout << "Elapsed time: " << duration.count() / 1000 << " s." << endl;
-    cout << "subgraph isomorphsim finds " << result.size() << " results" << endl;
+    cout << "Elapsed time: " << duration.count() << " ms." << endl;
+    cout << "subgraph isomorphism is Finished. Found " << result.size() << " results at " << iter << " iteration." << endl;
     for (int i = 0; i < result.size(); i++) {
-        cout << "subgraph " << i << "(d - q):" << endl;
+        // check correctness can be a function in graphmatch
+        Graph dataGraph = QAOALinearPattern(npattern, iter);
+        for (auto edge : queryGraph.get_edges()) {
+            int v1 = result[i].getDataIdx(edge[0]);
+            int v2 = result[i].getDataIdx(edge[1]);
+            if (dataGraph.has_edge(v1, v2) == false) {
+                cerr << "Generated subgraph isomorphism is wrong.";
+                return -1;
+            }
+        }
+        cout << "subgraph " << i << "(q - d):" << endl;
         result[i].print();
     }
 

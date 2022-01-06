@@ -13,6 +13,7 @@ bool Graph::add_node(int u) {
         in_degree_.resize(numNodes_, 0);
         out_degree_.resize(numNodes_, 0);
     }
+    topo_order_need_update_ = true;
     return true;
 }
 
@@ -32,6 +33,7 @@ bool Graph::add_edge(int u, int v) {
         out_degree_[v] += 1;
         in_degree_[u] += 1;        
     }
+    topo_order_need_update_ = true;
     return true;
 }
 
@@ -39,6 +41,7 @@ bool Graph::add_edge(int u, int v) {
 void Graph::remove_nodes(unordered_set<int> nodes) {
     // XXX: we are actually removing edges related to the node but 
     // not remove nodes.
+    topo_order_need_update_ = true;
     for (int i = 0; i < numNodes_; i++) {
         if (nodes.find(i) != nodes.end()) {
             numEdges_ -= adjList_[i].size();
@@ -155,9 +158,9 @@ void Graph::topo_sort_util(int u, vector<bool> &visited, vector<int>& topo_order
  
     // Recur for all the vertices
     // adjacent to this vertex
-    for (auto vi = adjList_[u].begin(); vi != adjList_[u].end(); ++vi)
-        if (!visited[*vi])
-            topo_sort_util(*vi, visited, topo_order);
+    for (auto vi : adjList_[u])
+        if (!visited[vi])
+            topo_sort_util(vi, visited, topo_order);
  
     // Push current vertex to stack
     // which stores result
@@ -165,23 +168,32 @@ void Graph::topo_sort_util(int u, vector<bool> &visited, vector<int>& topo_order
 }
 
 
-vector<int> Graph::get_topo_order() {
-    vector<int> topo_order;
+void Graph::update_topo_order() {
     vector<bool> visited(numNodes_, false);
 
     for (int i = 0; i < numNodes_; i++) {
         if (!visited[i]) {
-            topo_sort_util(i, visited, topo_order);
+            topo_sort_util(i, visited, topo_order_);
         }
     }
-
-    return topo_order;
+    rev_topo_order_ = vector<int>(topo_order_.rbegin(), topo_order_.rend());
+    topo_order_need_update_ = false;
 }
 
 
-vector<int> Graph::get_reversed_topo_order() {
-    vector<int> topo_order = get_topo_order();
-    return vector<int>(topo_order.rbegin(), topo_order.rend());
+vector<int> & Graph::get_topo_order() {
+    if (topo_order_need_update_ == true) {
+        update_topo_order();
+    }
+    return topo_order_;
+}
+
+
+vector<int> & Graph::get_reversed_topo_order() {
+    if (topo_order_need_update_ == true) {
+        update_topo_order();
+    }
+    return rev_topo_order_;
 }
 
 

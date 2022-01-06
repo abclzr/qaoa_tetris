@@ -58,7 +58,7 @@ public:
 	Graph &get_rev_query_dag() {return revQueryDAG_;}
 	Graph &get_data_G() {return dataG_;}
 
-	void backtrack(Mapping &M, 
+	bool backtrack(Mapping &M, 
 					vector<Mapping> &allM, 
 					int count=INT_MAX);
 
@@ -72,20 +72,11 @@ public:
 	// https://stackoverflow.com/questions/47354280/what-is-the-best-way-of-testing-private-methods-with-googletest
 	
 
-
-	int get_next_node(unordered_map<int, int> &M,
-						Graph &queryDAG,
-						Graph &revQueryDAG_,
-                        unordered_map<int, int>  &weightArray_, 
+	int get_next_node(Mapping &M,
+						Graph &queryDAG, 
 						Graph &CS,
                         unordered_map<int, unordered_map<int, int>> &uv2id, 
                         unordered_map<int, pair<int, int>> &id2uv);
-
-	set<int> get_expendable_candidates(unordered_map<int, int> &M_prime, int expend_u, 
-                                Graph &revQueryDAG,
-                                Graph &CS,
-                                unordered_map<int, unordered_map<int, int>> &uv2id, 
-                                unordered_map<int, pair<int, int>> &id2uv);
 
 	void build_init_CS(Graph &CS, 
                         unordered_map<int, unordered_map<int, int>> &uv2id, 
