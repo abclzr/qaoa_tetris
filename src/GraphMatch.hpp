@@ -58,7 +58,7 @@ public:
 	Graph &get_rev_query_dag() {return revQueryDAG_;}
 	Graph &get_data_G() {return dataG_;}
 
-	void backtrack(Mapping &M, 
+	bool backtrack(Mapping &M, 
 					vector<Mapping> &allM, 
 					int count=INT_MAX);
 

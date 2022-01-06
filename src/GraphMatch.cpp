@@ -184,21 +184,19 @@ void GraphMatch::build_CS() {
 }
 
 
-void GraphMatch::backtrack(Mapping &M,
+bool GraphMatch::backtrack(Mapping &M,
                             vector<Mapping> &allM_prime, 
                             int count) {
     if (M.size() == queryG_.num_nodes()) {
-        if (allM_prime.size() < count) {
-            allM_prime.emplace_back(M);
-        }
-        return;
+        allM_prime.emplace_back(M);
+        return allM_prime.size() < count;
     } else if (M.size() == 0) {
         int u = get_root_node();
         auto C_u = uv2id_[u];
         for (auto vi : C_u) {
             int v = vi.first;
             M.update(u, v);
-            backtrack(M, allM_prime, count);
+            if (backtrack(M, allM_prime, count) == false) return false;
             M.eraseByQueryIdx(u);
         }
     } else {
@@ -233,15 +231,18 @@ void GraphMatch::backtrack(Mapping &M,
         for (auto v : EC_u) {
             if (M.findDataIdx(v) == false) {
                 M.update(u, v);
-                backtrack(M, allM_prime, count);
+                if (backtrack(M, allM_prime, count) == false) return false;
                 M.eraseByQueryIdx(u);
             }
         }        
     }
+    return true;
 }
 
 
 vector<Mapping> GraphMatch::subgraph_isomorphsim(int count) {
+
+    if (dataG_.num_edges() < queryG_.num_edges()) return {};
 
     build_CS();
 

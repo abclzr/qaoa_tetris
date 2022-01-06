@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
     string queryGraphPath = argv[1];
     ifstream queryGraphFile(queryGraphPath);
     if (!queryGraphFile.is_open() || !queryGraph.load_from_file(queryGraphFile)) {
-        cerr << "Cannot load query graph file ../test/graph/10_1_0.txt.\n";
+        cerr << "Cannot load query graph file " << queryGraphPath << ".\n";
         return -1;
     }
     queryGraphFile.close();
@@ -70,8 +70,8 @@ int main(int argc, char *argv[]) {
     
     vector<Mapping> result;
     auto start = high_resolution_clock::now();
-    int iter;
-    for (iter = 1; iter < npattern; iter++) {
+    int iter = npattern % 2 == 0 ? 1 : 2;
+    for (; iter <= npattern; iter++) {
         Graph dataGraph = QAOALinearPattern(npattern, iter); // Pattern graph
         GraphMatch gm(queryGraph, dataGraph);
         result = gm.subgraph_isomorphsim(1);
@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(stop - start);
     cout << "Elapsed time: " << duration.count() << " ms." << endl;
-    cout << "subgraph isomorphism is wrong. " << result.size() << " results at " << iter << " iteration." << endl;
+    cout << "subgraph isomorphism is Finished. Found " << result.size() << " results at " << iter << " iteration." << endl;
     for (int i = 0; i < result.size(); i++) {
         // check correctness can be a function in graphmatch
         Graph dataGraph = QAOALinearPattern(npattern, iter);
@@ -94,7 +94,7 @@ int main(int argc, char *argv[]) {
                 return -1;
             }
         }
-        cout << "subgraph " << i << "(d - q):" << endl;
+        cout << "subgraph " << i << "(q - d):" << endl;
         result[i].print();
     }
 
