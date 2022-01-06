@@ -20,6 +20,9 @@ add_executable(subiso_profile main.cpp)
 target_link_libraries(subiso_profile graph graph_match mapping ${GPERFTOOLS_LIBRARIES})
 message("xxx${GPERFTOOLS_LIBRARIES}")
 
+add_executable(expr script/expr.cpp)
+target_link_libraries(expr graph graph_match mapping)
+
 
 include(CTest)
 include(FetchContent)
