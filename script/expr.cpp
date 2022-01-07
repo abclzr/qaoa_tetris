@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
     vector<int> degrees = {3, 5};
     vector<int> graph_sizes = {8, 9, 10, 11, 12 ,13, 14, 15};
 
-    unordered_map<int, unordered_map<int, pair<float, int>>> results;
+    unordered_map<int, unordered_map<int, pair<int, int>>> results;
 
     for (int g_size : graph_sizes) {
         int npattern = g_size;
@@ -79,19 +79,22 @@ int main(int argc, char *argv[]) {
             cout << to_string(g_size) + "_" + to_string(degree) + "_1.txt" << endl;
 
             vector<Mapping> result;
-            auto start = high_resolution_clock::now();
+            
             int iter = npattern % 2 == 0 ? 1 : 2;
+            int duration = 0;
             for (; iter <= npattern; iter++) {
                 Graph dataGraph = QAOALinearPattern(npattern, iter); // Pattern graph
                 GraphMatch gm(queryGraph, dataGraph);
+                auto start = high_resolution_clock::now();
                 result = gm.subgraph_isomorphsim(1);
+                auto stop = high_resolution_clock::now();
+                duration += duration_cast<milliseconds>(stop - start).count();
                 if (result.size() > 0) {
                     break;
                 }
             }
-            auto stop = high_resolution_clock::now();
-            auto duration = duration_cast<milliseconds>(stop - start);
-            cout << "Elapsed time: " << duration.count() << " ms." << endl;
+            
+            cout << "Elapsed time: " << duration << " ms." << endl;
             cout << "subgraph isomorphism is Finished. Found " << result.size() << " results at " << iter << " iteration." << endl;
 
             for (int i = 0; i < result.size(); i++) {
@@ -109,16 +112,16 @@ int main(int argc, char *argv[]) {
                 result[i].print();
             }
 
-            results[g_size][degree] = make_pair(duration.count(), iter);
+            results[g_size][degree] = make_pair(duration, iter);
         }
     }
 
     // Print in Markdown table format.
-    printf("| size | degree | time (s) | iter |\n");
+    printf("| size | density | our time (s) | our iter |\n");
     printf("| --- | --- | --- | --- |\n");
     for (int degree : degrees) {
         for (int g_size : graph_sizes) {
-            printf("| %d | %d | %.3f | %d |\n", g_size, degree, results[g_size][degree].first / 1000, results[g_size][degree].second);
+            printf("| %d | %d | %.3f | %d |\n", g_size, degree, results[g_size][degree].first / 1000.0, results[g_size][degree].second);
         }
     }
 
