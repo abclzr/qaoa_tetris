@@ -15,57 +15,24 @@ int GraphMatch::get_root_node() {
     return 0;
 }
 
-//not sure how to deal with this function
-set<int> set_intersec(set<int> s1, set<int> s2){
-    set<int> intersect;
-    set_intersection(s1.begin(), s1.end(), s2.begin(), s2.end(),
-                 std::inserter(intersect, intersect.begin()));
-    return intersect;
-}
 
 pair<int, unordered_set<int>> GraphMatch::get_next_node(Mapping &M, 
                                 Graph &queryDAG,
                                 Graph &revQueryDAG,
+                                set<int> &expendable_u,
                                 Graph &CS,
                                 unordered_map<int, unordered_map<int, int>> &uv2id, 
                                 unordered_map<int, pair<int, int>> &id2uv,
                                 unordered_map<int,int> &weightArray) {
-    // FIXME: Use Sec 5.2 adaptive matching order (path size order) to find the next node.
-
     //looking for expendable vertices
     vector<int> iterOrder = queryDAG.get_topo_order();
-    set<int> expendable_u; 
-    unordered_map<int,int> indegrees;
-    //fixme: not sure if indegrees[i] initialized as 0. 
-
-    for (auto u : iterOrder) {
-        if (M.findQueryIdx(u) == true) {
-            for(auto neigh : queryDAG.get_neighbors(u)){
-                if(indegrees[neigh] < 1){
-                    indegrees[neigh] = 1;
-                    if(indegrees[neigh] == queryDAG.in_degree(neigh) && M.findQueryIdx(neigh) == false) {
-                        expendable_u.insert(neigh);
-                    }
-                }else{
-                    indegrees[neigh] +=1;
-                    
-                    if(indegrees[neigh] == queryDAG.in_degree(neigh) && M.findQueryIdx(neigh) == false) {
-                        expendable_u.insert(neigh);
-                    }
-                }
-            }
-        }
-    }
-
 
     //looking for candidates for each expendable node
-    unordered_map<int, set<int>> u_candidates_map;
+    unordered_map<int, unordered_set<int>> u_candidates_map;
     for (auto u : expendable_u) {
-        set<int> expendable_id;
+        unordered_set<int> expendable_id;
 
         //get candidates of u
-        
-
         for(auto v_id : uv2id[u]) {
             expendable_id.insert(v_id.second);
         }
@@ -75,8 +42,13 @@ pair<int, unordered_set<int>> GraphMatch::get_next_node(Mapping &M,
             int v_p = M.getDataIdx(p); 
             int id_v_p = uv2id[p][v_p];
             auto id_neigh_v_p = CS.get_neighbors(id_v_p);
-            set<int> set_id_neigh_v_p(id_neigh_v_p.begin(),id_neigh_v_p.end());
-            expendable_id = set_intersec(expendable_id,set_id_neigh_v_p);
+            for (auto it = expendable_id.begin(); it != expendable_id.end();) {
+                if (id_neigh_v_p.find(*it) == id_neigh_v_p.end()) {
+                    it = expendable_id.erase(it);
+                } else {
+                    ++it;
+                }
+            }
         }
 
         u_candidates_map[u] = expendable_id;
@@ -263,33 +235,50 @@ void GraphMatch::build_CS() {
 
 bool GraphMatch::backtrack(Mapping &M,
                             vector<Mapping> &allM_prime, 
+                            set<int> expendable_u,
+                            unordered_map<int,int> indegrees,
                             int count) {
     if (M.size() == queryG_.num_nodes()) {
         allM_prime.emplace_back(M);
         return allM_prime.size() < count;
     } else if (M.size() == 0) {
         int u = get_root_node();
+        for (auto nbr : queryDAG_.get_neighbors(u)) {
+            indegrees[nbr] += 1;
+            if (indegrees[nbr] == queryDAG_.in_degree(nbr)) {
+                expendable_u.insert(nbr);
+            }
+        }
         auto C_u = uv2id_[u];
         for (auto vi : C_u) {
             int v = vi.first;
             M.update(u, v);
-            if (backtrack(M, allM_prime, count) == false) return false;
+            if (backtrack(M, allM_prime, expendable_u, indegrees, count) == false) return false;
             M.eraseByQueryIdx(u);
         }
     } else {
         pair<int, unordered_set<int>> u_candidates = get_next_node(M, 
                                 queryDAG_,
                                 revQueryDAG_,
+                                expendable_u,
                                 csG_,
                                 uv2id_, 
                                 id2uv_,
                                 weightArray_); 
 
         int u = u_candidates.first;
+        // update in_degree & expendable_u
+        expendable_u.erase(u);
+        for (auto nbr : queryDAG_.get_neighbors(u)) {
+            indegrees[nbr] += 1;
+            if (indegrees[nbr] == queryDAG_.in_degree(nbr)) {
+                expendable_u.insert(nbr);
+            }
+        }
         for (auto v : u_candidates.second) {
             if (M.findDataIdx(v) == false) {
                 M.update(u, v);
-                if (backtrack(M, allM_prime, count) == false) return false;
+                if (backtrack(M, allM_prime, expendable_u, indegrees, count) == false) return false;
                 M.eraseByQueryIdx(u);
             }
         }        
@@ -305,7 +294,9 @@ vector<Mapping> GraphMatch::subgraph_isomorphsim(int count) {
 
     Mapping M(queryG_.num_nodes());
     vector<Mapping> allM_prime;
-    backtrack(M, allM_prime, count);
+    set<int> expendable_u;
+    unordered_map<int, int> indegrees;
+    backtrack(M, allM_prime, expendable_u, indegrees, count);
 
     if (allM_prime.size() >= count) {
         return vector<Mapping>(allM_prime.begin(), allM_prime.begin() + count);

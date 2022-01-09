@@ -61,6 +61,8 @@ public:
 
 	bool backtrack(Mapping &M, 
 					vector<Mapping> &allM, 
+					set<int> expendable_u,
+					unordered_map<int,int> indegrees,
 					int count=INT_MAX);
 
 	// XXX: Now a vector of int pairs is used to represent the matching from query to data. 
@@ -77,6 +79,7 @@ public:
 	pair<int, unordered_set<int>> get_next_node(Mapping &M, 
                                 Graph &queryDAG,
                                 Graph &revQueryDAG,
+								set<int> &expendable_u,
                                 Graph &CS,
                                 unordered_map<int, unordered_map<int, int>> &uv2id, 
                                 unordered_map<int, pair<int, int>> &id2uv,
