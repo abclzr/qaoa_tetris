@@ -34,6 +34,7 @@ pair<int, unordered_set<int>> GraphMatch::get_next_node(Mapping &M,
 
         //get candidates of u
         for(auto v_id : uv2id[u]) {
+            if (M.findDataIdx(v_id.first)) continue;
             expendable_id.insert(v_id.second);
         }
         
@@ -281,7 +282,13 @@ bool GraphMatch::backtrack(Mapping &M,
                 if (backtrack(M, allM_prime, expendable_u, indegrees, count) == false) return false;
                 M.eraseByQueryIdx(u);
             }
-        }        
+        }     
+        for (auto nbr : queryDAG_.get_neighbors(u)) {
+            indegrees[nbr] -= 1;
+            if (indegrees[nbr] == queryDAG_.in_degree(nbr)) {
+                expendable_u.erase(nbr);
+            }
+        }   
     }
     return true;
 }
