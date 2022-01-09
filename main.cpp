@@ -5,6 +5,7 @@
 #include <vector>
 #include <chrono>
 #include <cstdlib>
+#include <cstdio>
 
 #include "src/Graph.hpp"
 #include "src/GraphMatch.hpp"
@@ -81,22 +82,23 @@ int main(int argc, char *argv[]) {
     }
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(stop - start);
-    cout << "Elapsed time: " << duration.count() << " ms." << endl;
-    cout << "subgraph isomorphism is Finished. Found " << result.size() << " results at " << iter << " iteration." << endl;
-    for (int i = 0; i < result.size(); i++) {
-        // check correctness can be a function in graphmatch
-        Graph dataGraph = QAOALinearPattern(npattern, iter);
-        for (auto edge : queryGraph.get_edges()) {
-            int v1 = result[i].getDataIdx(edge[0]);
-            int v2 = result[i].getDataIdx(edge[1]);
-            if (dataGraph.has_edge(v1, v2) == false) {
-                cerr << "Generated subgraph isomorphism is wrong.";
-                return -1;
-            }
-        }
-        cout << "subgraph " << i << "(q - d):" << endl;
-        result[i].print();
-    }
+    printf("%.3f,%d", duration.count() / 1000.0, iter);
+    // cout << "Elapsed time: " << duration.count() << " ms." << endl;
+    // cout << "subgraph isomorphism is Finished. Found " << result.size() << " results at " << iter << " iteration." << endl;
+    // for (int i = 0; i < result.size(); i++) {
+    //     // check correctness can be a function in graphmatch
+    //     Graph dataGraph = QAOALinearPattern(npattern, iter);
+    //     for (auto edge : queryGraph.get_edges()) {
+    //         int v1 = result[i].getDataIdx(edge[0]);
+    //         int v2 = result[i].getDataIdx(edge[1]);
+    //         if (dataGraph.has_edge(v1, v2) == false) {
+    //             cerr << "Generated subgraph isomorphism is wrong.";
+    //             return -1;
+    //         }
+    //     }
+    //     cout << "subgraph " << i << "(q - d):" << endl;
+    //     result[i].print();
+    // }
 
 
     return 0;
