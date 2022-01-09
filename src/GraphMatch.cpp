@@ -12,7 +12,17 @@ int GraphMatch::get_root_node() {
     // candidate_d(u) is the number of candidates in the data graph.
     // We do not have the label info here thus, c_d(u) is the number of 
     // node v in the data graph that degree_d(v) >= degree_q(u)
-    return 0;
+    
+    int min_u = -1;
+    int min_w = INT_MAX;
+    for (int u = 0; u < queryG_.num_nodes(); ++u) {
+        int w = queryG_.get_candidate_set(u, dataG_).size();
+        if (w < min_w) {
+            min_u = u;
+            min_w = w;
+        }
+    }
+    return min_u;
 }
 
 
