@@ -14,9 +14,10 @@
 #pragma once
 
 #include <vector>
+#include <set>
 #include <unordered_map>
 #include <climits>
-
+#include <utility>
 #include "Graph.hpp"
 #include "Mapping.hpp"
 
@@ -60,6 +61,8 @@ public:
 
 	bool backtrack(Mapping &M, 
 					vector<Mapping> &allM, 
+					set<int> expendable_u,
+					unordered_map<int,int> indegrees,
 					int count=INT_MAX);
 
 	// XXX: Now a vector of int pairs is used to represent the matching from query to data. 
@@ -72,11 +75,15 @@ public:
 	// https://stackoverflow.com/questions/47354280/what-is-the-best-way-of-testing-private-methods-with-googletest
 	
 
-	int get_next_node(Mapping &M,
-						Graph &queryDAG, 
-						Graph &CS,
-                        unordered_map<int, unordered_map<int, int>> &uv2id, 
-                        unordered_map<int, pair<int, int>> &id2uv);
+
+	pair<int, unordered_set<int>> get_next_node(Mapping &M, 
+                                Graph &queryDAG,
+                                Graph &revQueryDAG,
+								set<int> &expendable_u,
+                                Graph &CS,
+                                unordered_map<int, unordered_map<int, int>> &uv2id, 
+                                unordered_map<int, pair<int, int>> &id2uv,
+                                unordered_map<int,int> &weightArray);
 
 	void build_init_CS(Graph &CS, 
                         unordered_map<int, unordered_map<int, int>> &uv2id, 
