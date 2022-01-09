@@ -34,6 +34,9 @@ pair<int, unordered_set<int>> GraphMatch::get_next_node(Mapping &M,
 
         //get candidates of u
         for(auto v_id : uv2id[u]) {
+            //make sure all candidates are not mapped
+            if(M.findDataIdx(v_id.first)) continue;
+            
             expendable_id.insert(v_id.second);
         }
         
@@ -267,21 +270,30 @@ bool GraphMatch::backtrack(Mapping &M,
                                 weightArray_); 
 
         int u = u_candidates.first;
-        // update in_degree & expendable_u
         expendable_u.erase(u);
+
+        // update in_degree & expendable_u
         for (auto nbr : queryDAG_.get_neighbors(u)) {
             indegrees[nbr] += 1;
             if (indegrees[nbr] == queryDAG_.in_degree(nbr)) {
                 expendable_u.insert(nbr);
             }
         }
+        
         for (auto v : u_candidates.second) {
             if (M.findDataIdx(v) == false) {
                 M.update(u, v);
                 if (backtrack(M, allM_prime, expendable_u, indegrees, count) == false) return false;
                 M.eraseByQueryIdx(u);
             }
-        }        
+        }
+
+        for (auto nbr : queryDAG_.get_neighbors(u)) {
+            if (indegrees[nbr] == queryDAG_.in_degree(nbr)) {
+                expendable_u.erase(nbr);
+            }
+            indegrees[nbr] -= 1;
+        }
     }
     return true;
 }
