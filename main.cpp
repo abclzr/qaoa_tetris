@@ -69,19 +69,23 @@ int main(int argc, char *argv[]) {
 
     
     vector<Mapping> result;
-    auto start = high_resolution_clock::now();
+    auto total_start = high_resolution_clock::now();
     int iter = npattern % 2 == 0 ? 1 : 2;
     for (; iter <= npattern; iter++) {
         Graph dataGraph = QAOALinearPattern(npattern, iter); // Pattern graph
         GraphMatch gm(queryGraph, dataGraph);
+        auto start = high_resolution_clock::now();
         result = gm.subgraph_isomorphsim(1);
+        auto stop = high_resolution_clock::now();
+        auto duration = duration_cast<milliseconds>(stop - start);
+        cout << "iter " << iter << " Elapsed time: " << duration.count() << " ms." << endl;
         if (result.size() > 0) {
             break;
         }
     }
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<milliseconds>(stop - start);
-    cout << "Elapsed time: " << duration.count() << " ms." << endl;
+    auto total_stop = high_resolution_clock::now();
+    auto total_duration = duration_cast<milliseconds>(total_stop - total_start);
+    cout << "Elapsed time: " << total_duration.count() << " ms." << endl;
     cout << "subgraph isomorphism is Finished. Found " << result.size() << " results at " << iter << " iteration." << endl;
     for (int i = 0; i < result.size(); i++) {
         // check correctness can be a function in graphmatch
@@ -97,6 +101,7 @@ int main(int argc, char *argv[]) {
         cout << "subgraph " << i << "(q - d):" << endl;
         result[i].print();
     }
+    
 
 
     return 0;
