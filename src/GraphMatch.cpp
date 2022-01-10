@@ -7,17 +7,12 @@
 using namespace std;
 
 int GraphMatch::get_root_node() {
-    // FIXME use candidate_d(u) / degree_q(u) to get the root.
     // FIXME: add tests.
-    // candidate_d(u) is the number of candidates in the data graph.
-    // We do not have the label info here thus, c_d(u) is the number of 
-    // node v in the data graph that degree_d(v) >= degree_q(u)
-    
     int min_u = -1;
-    int min_w = INT_MAX;
+    float min_w = (float)dataG_.num_nodes();
     for (int u = 0; u < queryG_.num_nodes(); ++u) {
-        int w = queryG_.get_candidate_set(u, dataG_).size();
-        if (w < min_w) {
+        float w = (float)queryG_.get_candidate_set(u, dataG_).size() / (float)queryG_.degree(u);
+        if (w <= min_w) {
             min_u = u;
             min_w = w;
         }
@@ -268,6 +263,12 @@ bool GraphMatch::backtrack(Mapping &M,
             M.update(u, v);
             if (backtrack(M, allM_prime, expendable_u, indegrees, count) == false) return false;
             M.eraseByQueryIdx(u);
+        }
+        for (auto nbr : queryDAG_.get_neighbors(u)) {
+            if (indegrees[nbr] == queryDAG_.in_degree(nbr)) {
+                expendable_u.erase(nbr);
+            }
+            indegrees[nbr] -= 1;
         }
     } else {
         pair<int, unordered_set<int>> u_candidates = get_next_node(M, 
