@@ -70,36 +70,22 @@ int main(int argc, char *argv[]) {
 
     
     vector<Mapping> result;
-    auto start = high_resolution_clock::now();
     int iter = npattern % 2 == 0 ? 1 : 2;
+    int total_duration = 0;
     for (; iter <= npattern; iter++) {
         Graph dataGraph = QAOALinearPattern(npattern, iter); // Pattern graph
         GraphMatch gm(queryGraph, dataGraph);
+        auto start = high_resolution_clock::now();
         result = gm.subgraph_isomorphsim(1);
+        auto stop = high_resolution_clock::now();
+        total_duration += duration_cast<milliseconds>(stop - start).count();
+        // cout << "iter " << iter << " Elapsed time: " << duration << " ms." << endl;
         if (result.size() > 0) {
             break;
         }
     }
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<milliseconds>(stop - start);
-    printf("%.3f,%d", duration.count() / 1000.0, iter);
-    // cout << "Elapsed time: " << duration.count() << " ms." << endl;
-    // cout << "subgraph isomorphism is Finished. Found " << result.size() << " results at " << iter << " iteration." << endl;
-    // for (int i = 0; i < result.size(); i++) {
-    //     // check correctness can be a function in graphmatch
-    //     Graph dataGraph = QAOALinearPattern(npattern, iter);
-    //     for (auto edge : queryGraph.get_edges()) {
-    //         int v1 = result[i].getDataIdx(edge[0]);
-    //         int v2 = result[i].getDataIdx(edge[1]);
-    //         if (dataGraph.has_edge(v1, v2) == false) {
-    //             cerr << "Generated subgraph isomorphism is wrong.";
-    //             return -1;
-    //         }
-    //     }
-    //     cout << "subgraph " << i << "(q - d):" << endl;
-    //     result[i].print();
-    // }
 
+    printf("%.3f,%d", total_duration / 1000.0, iter);
 
     return 0;
 }
