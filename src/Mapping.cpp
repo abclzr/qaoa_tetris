@@ -3,6 +3,8 @@
 
 using namespace std;
 	
+namespace subiso {
+
 void Mapping::update(int queryIdx, int dataIdx) { 
     mapping_[queryIdx] = offset_ + dataIdx; 
     mapping_[offset_ + dataIdx] = queryIdx;
@@ -40,3 +42,5 @@ void Mapping::print() {
     }
     cout << endl;
 }
+
+} // namespace: subiso

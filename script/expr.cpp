@@ -13,6 +13,7 @@
 
 using namespace std;
 using namespace std::chrono;
+using namespace subiso;
 
 // XXX: Move the following pattern graph generation func to a lib
 // This cycle here is the "cylce" that excludes swap cycle.

@@ -5,6 +5,8 @@
 
 using namespace std;
 
+namespace subiso {
+
 bool Graph::add_node(int u) {
     if (u < 0) return false;
     if (u >= numNodes_) {
@@ -152,6 +154,15 @@ Graph Graph::generate_reversed_graph() {
 }
 
 
+int Graph::num_nonempty_nodes() {
+    int nonempty_nodes = 0;
+    for (int i = 0; i < numNodes_; ++i) {
+        nonempty_nodes += adjList_[i].empty() ? 0 : 1;
+    }
+    return nonempty_nodes;
+}
+
+
 void Graph::topo_sort_util(int u, vector<bool> &visited, vector<int>& topo_order) {
     // Mark the current node as visited.
     visited[u] = true;
@@ -197,13 +208,16 @@ vector<int> & Graph::get_reversed_topo_order() {
 }
 
 
-unordered_set<int> Graph::get_candidate_set(int u, Graph &g) {
+unordered_set<int> Graph::get_candidate_set(int u, Graph &g, int root) {
     int u_degree = degree(u);
     unordered_set<int> candidate_set;
     for (int i = 0; i < g.num_nodes(); i++) {
+        if (u == root && numNodes_ % 2 == 0 && i >= numNodes_ / 2) continue;
         if (u_degree <= g.degree(i)) {
             candidate_set.insert(i);
         }
     }
     return candidate_set;
 }
+
+} // namespace: subiso

@@ -6,6 +6,8 @@
 
 using namespace std;
 
+namespace subiso {
+
 // FIXME: add tests for this class.
 // XXX: add description
 // simple idea: we have limited number of nodes in query and data graph. So we 
@@ -41,4 +43,8 @@ class Mapping
 
 		void print();
 };
+
+} // namespace: subiso
+
 #endif
+

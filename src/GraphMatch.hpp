@@ -21,6 +21,8 @@
 #include "Graph.hpp"
 #include "Mapping.hpp"
 
+namespace subiso {
+
 class GraphMatch
 {
 private:
@@ -102,4 +104,8 @@ public:
 							unordered_map<int, pair<int, int>> &id2uv);
 
 };
+
+} // namespace: subiso
+
 #endif
+

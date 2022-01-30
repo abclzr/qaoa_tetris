@@ -4,6 +4,7 @@
 #include <gmock/gmock.h>
 
 using ::testing::_;
+using namespace subiso;
 
 // The fixture for testing class Foo.
 class GraphTest : public ::testing::Test {

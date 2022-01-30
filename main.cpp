@@ -13,9 +13,10 @@
 
 using namespace std;
 using namespace std::chrono;
+using namespace subiso;
 
 // XXX: Move the following pattern graph generation func to a lib
-// This cycle here is the "cylce" that excludes swap cycle.
+// This cycle here is the "cycle" that excludes swap cycle.
 Graph QAOALinearPattern(int n, int cycle=INT_MAX) {
     Graph g(n, false);
     vector<int> pi;

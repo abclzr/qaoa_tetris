@@ -20,6 +20,8 @@
 
 using namespace std;
 
+namespace subiso {
+
 // XXX: sperate directed graph and undirected graph to two different classes.
 class Graph  
 {
@@ -53,6 +55,7 @@ class Graph
 		~Graph() {};
 
 		int num_nodes() {return numNodes_;}
+		int num_nonempty_nodes();
 		int num_edges() {return numEdges_;}
 
 		bool add_node(int u);
@@ -90,7 +93,11 @@ class Graph
 		vector<int> & get_topo_order();
 		vector<int> & get_reversed_topo_order();
 
-		unordered_set<int> get_candidate_set(int u, Graph &g);
+		unordered_set<int> get_candidate_set(int u, Graph &g, int root = -1);
 
 };
+
+} // namespace: subiso
+
 #endif
+

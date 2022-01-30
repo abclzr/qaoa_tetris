@@ -6,6 +6,8 @@
 
 using namespace std;
 
+namespace subiso {
+
 int GraphMatch::get_root_node() {
     // FIXME: add tests.
     int min_u = -1;
@@ -96,9 +98,11 @@ void GraphMatch::build_init_CS(Graph &initCS,
                                 unordered_map<int, pair<int, int>> &id2uv) {
 
     vector<int> revTopOrder = queryDAG_.get_reversed_topo_order();
+    int root = get_root_node();
+    // root = -1;
     int initCSNodeIndex = 0;
     for (auto u : revTopOrder) {
-        unordered_set<int> u_candidate_set = queryG_.get_candidate_set(u, dataG_);
+        unordered_set<int> u_candidate_set = queryG_.get_candidate_set(u, dataG_, root);
         // Each node in u_candidate_set is a node in initCS
         for (auto v : u_candidate_set) {
             initCS.add_node(initCSNodeIndex);
@@ -108,7 +112,7 @@ void GraphMatch::build_init_CS(Graph &initCS,
             // Check each u's out edge
             unordered_set<int> u_children = queryDAG_.get_neighbors(u);
             for (auto u_prime : u_children) {
-                unordered_set<int> u_child_candidate_set = queryG_.get_candidate_set(u_prime, dataG_);
+                unordered_set<int> u_child_candidate_set = queryG_.get_candidate_set(u_prime, dataG_, root);
                 for (auto v_prime : u_child_candidate_set) {
                     if (dataG_.has_edge(v, v_prime)) {
                         initCS.add_edge(uv2id[u][v], uv2id[u_prime][v_prime]);
@@ -229,12 +233,17 @@ void GraphMatch::build_CS() {
     build_init_CS(csG_, uv2id_, id2uv_);
 
     int direction = 1; // 0: reversed
+    int iteration = 1;
     while (true) {
         // csG_.print_adjList();
+        // cout << "refine iteration " << iteration << endl;
+        // cout << "nodes before: " << csG_.num_nonempty_nodes() << endl;
         if (refine_CS_wrapper(csG_, uv2id_, id2uv_, queryDAG_, direction) == false) {
             break;
         }
+        // cout << "nodes after: " << csG_.num_nonempty_nodes() << endl;
         direction = 1 - direction;
+        iteration += 1;
     }
 
     build_weight_array(weightArray_, queryDAG_, csG_, uv2id_, id2uv_);
@@ -328,3 +337,5 @@ vector<Mapping> GraphMatch::subgraph_isomorphsim(int count) {
     }
 
 }
+
+} // namespace: subiso
