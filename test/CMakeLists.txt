@@ -9,11 +9,9 @@ macro(package_add_test_with_libraries TESTNAME FILES TEST_WORKING_DIRECTORY)
     set_target_properties(${TESTNAME} PROPERTIES FOLDER test)
 endmacro()
 
-package_add_test_with_libraries(graph_test graph_test.cpp "${PROJECT_SOURCE_DIR}/test/graph" graph)
+package_add_test_with_libraries(cs_test cs_test.cpp "${PROJECT_SOURCE_DIR}/test/graph" graph_match graph)
 
-package_add_test_with_libraries(cs_test cs_test.cpp "${PROJECT_SOURCE_DIR}/test/graph" graph graph_match mapping)
-
-package_add_test_with_libraries(subiso_test subiso_test.cpp "${PROJECT_SOURCE_DIR}/test/graph" graph graph_match mapping)
+package_add_test_with_libraries(subiso_test subiso_test.cpp "${PROJECT_SOURCE_DIR}/test/graph" graph_match graph bimap )
 
 # Test
 # package_add_test(graph_test graph_test.cpp)

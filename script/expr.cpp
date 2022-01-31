@@ -7,13 +7,15 @@
 #include <cstdlib>
 #include <cstdio>
 
-#include "../src/Graph.hpp"
-#include "../src/GraphMatch.hpp"
-#include "../src/Mapping.hpp"
+#include "Graph.hpp"
+#include "GraphMatch.hpp"
+#include "BiMap.hpp"
 
 using namespace std;
 using namespace std::chrono;
 using namespace subiso;
+using namespace qaoagraph;
+using namespace bimap;
 
 // XXX: Move the following pattern graph generation func to a lib
 // This cycle here is the "cylce" that excludes swap cycle.
@@ -79,7 +81,7 @@ int main(int argc, char *argv[]) {
             cout << "graph size: " << g_size << " degree: " << degree << " ";
             cout << to_string(g_size) + "_" + to_string(degree) + "_1.txt" << endl;
 
-            vector<Mapping> result;
+            vector<BiMap> result;
             
             int iter = npattern % 2 == 0 ? 1 : 2;
             int duration = 0;
@@ -102,8 +104,8 @@ int main(int argc, char *argv[]) {
                 // check correctness can be a function in graphmatch
                 Graph dataGraph = QAOALinearPattern(npattern, iter);
                 for (auto edge : queryGraph.get_edges()) {
-                    int v1 = result[i].getDataIdx(edge[0]);
-                    int v2 = result[i].getDataIdx(edge[1]);
+                    int v1 = result[i].getValueByKey(edge[0]);
+                    int v2 = result[i].getValueByKey(edge[1]);
                     if (dataGraph.has_edge(v1, v2) == false) {
                         cerr << "Generated subgraph isomorphism is wrong.";
                         return -1;

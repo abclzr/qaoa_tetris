@@ -19,7 +19,10 @@
 #include <climits>
 #include <utility>
 #include "Graph.hpp"
-#include "Mapping.hpp"
+#include "BiMap.hpp"
+
+using namespace qaoagraph;
+using namespace bimap;
 
 namespace subiso {
 
@@ -61,24 +64,24 @@ public:
 	Graph &get_rev_query_dag() {return revQueryDAG_;}
 	Graph &get_data_G() {return dataG_;}
 
-	bool backtrack(Mapping &M, 
-					vector<Mapping> &allM, 
+	bool backtrack(BiMap &M, 
+					vector<BiMap> &allM, 
 					set<int> expendable_u,
 					unordered_map<int,int> indegrees,
 					int count=INT_MAX);
 
 	// XXX: Now a vector of int pairs is used to represent the matching from query to data. 
 	// It suppose to return an iterator(?) for practical use.
-	vector<Mapping> subgraph_isomorphsim(int count=INT_MAX);
+	vector<BiMap> subgraph_isomorphsim(int count=INT_MAX);
 
 
-	// XXX: These functions are supposed to be private (also for these args that are private varaibles)
+	// XXX: These functions are supposed to be private (also for these args that are private variables)
 	// but for testing issue, they are public now check the following link to improve.
 	// https://stackoverflow.com/questions/47354280/what-is-the-best-way-of-testing-private-methods-with-googletest
 	
 
 
-	pair<int, unordered_set<int>> get_next_node(Mapping &M, 
+	pair<int, unordered_set<int>> get_next_node(BiMap &M, 
                                 Graph &queryDAG,
                                 Graph &revQueryDAG,
 								set<int> &expendable_u,

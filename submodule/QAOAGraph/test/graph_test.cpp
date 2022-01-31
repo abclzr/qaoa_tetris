@@ -1,16 +1,18 @@
-#include "../src/Graph.hpp"
+#include "Graph.hpp"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
 using ::testing::_;
-using namespace subiso;
+using namespace qaoagraph;
 
 // The fixture for testing class Foo.
 class GraphTest : public ::testing::Test {
    protected:
    // You can remove any or all of the following functions if their bodies would
    // be empty.
+   string resource_dir = TEST_RESOURCE_DIR;
+   
 
    GraphTest() {
       // You can do set-up work for each test here.
@@ -127,8 +129,7 @@ TEST_F(GraphTest, LoadFromFileTest) {
 
    for (int i = 0; i < testGraphNames.size(); i++) {
       Graph g;
-      // XXX: modify the current testing/working directory in cmakefile
-      string testGraphPath = "../../test/graph/" + testGraphNames[i] + ".txt";
+      string testGraphPath = resource_dir + testGraphNames[i] + ".txt";
       ifstream graphFile(testGraphPath);
       if (!graphFile.is_open() || !g.load_from_file(graphFile, graphDirected[i])) {
          cerr << "Cannot load graph file " << testGraphPath << ".\n";
@@ -229,10 +230,10 @@ TEST_F(GraphTest, CandidateSetTest) {
       {0, 1, 2, 3, 4, 5, 6, 7, 8, 9} // degree 1
    };
 
-   string dataGraphPath = "../../test/graph/10_1_0.txt";
+   string dataGraphPath = resource_dir + "10_1_0.txt";
    ifstream dataGraphFile(dataGraphPath);
    if (!dataGraphFile.is_open() || !dataG.load_from_file(dataGraphFile)) {
-      cerr << "Cannot load graph file ../../test/graph/10_1_0.txt.\n";
+      cerr << "Cannot load graph file 10_1_0.txt.\n";
       FAIL();
    }
    dataGraphFile.close();
@@ -255,6 +256,94 @@ TEST_F(GraphTest, ReversedTopoIterTest) {
    // FIXME Add more tests...
    vector<int> revTopoOrder = {4, 5, 1, 8, 6, 2, 7, 3, 0};
    EXPECT_EQ(g.get_reversed_topo_order(), revTopoOrder);
+}
+
+
+TEST_F(GraphTest, SCCTest) {
+   Graph g(true);
+   g.add_edge(0, 1);
+   g.add_edge(1, 0);
+   g.add_edge(0, 2);
+   g.add_edge(1, 3);
+   g.add_edge(2, 3);
+   g.add_edge(3, 4);
+   g.add_edge(4, 2);
+   g.add_edge(3, 5);
+
+   auto sccs = g.strongly_connected_components();
+   vector<unordered_set<int>> correct_sccs = {{0, 1}, {2, 3, 4}, {5}};
+   EXPECT_THAT(sccs, testing::UnorderedElementsAreArray(correct_sccs));
+
+   Graph testG;
+   string testGraphPath = resource_dir + "small4.txt";
+   ifstream graphFile(testGraphPath);
+   if (!graphFile.is_open() || !testG.load_from_file(graphFile, true)) {
+      cerr << "Cannot load graph file " << testGraphPath << ".\n";
+      FAIL();
+   }
+   graphFile.close();
+   sccs = testG.strongly_connected_components();
+   correct_sccs = {{0, 1, 2, 3}};
+   EXPECT_THAT(sccs, testing::UnorderedElementsAreArray(correct_sccs));
+}
+
+
+TEST_F(GraphTest, SubgraphTest) {
+   Graph testG;
+   string testGraphPath = resource_dir + "small4.txt";
+   ifstream graphFile(testGraphPath);
+   if (!graphFile.is_open() || !testG.load_from_file(graphFile, true)) {
+      cerr << "Cannot load graph file " << testGraphPath << ".\n";
+      FAIL();
+   }
+   graphFile.close();
+   Graph subgraph;
+   subgraph = testG.generate_subgraph({0});
+   EXPECT_EQ(subgraph.num_nodes(), 4);
+   EXPECT_EQ(subgraph.num_edges(), 0);
+   subgraph = testG.generate_subgraph({1, 2});
+   EXPECT_EQ(subgraph.num_nodes(), 4);
+   EXPECT_EQ(subgraph.num_edges(), 1);
+   subgraph = testG.generate_subgraph({0, 3});
+   EXPECT_EQ(subgraph.num_nodes(), 4);
+   EXPECT_EQ(subgraph.num_edges(), 2);
+}
+
+TEST_F(GraphTest, SimpleCycleTest) {
+   Graph testG1;
+   string testGraphPath = resource_dir + "small4.txt";
+   ifstream graphFile(testGraphPath);
+   if (!graphFile.is_open() || !testG1.load_from_file(graphFile, true)) {
+      cerr << "Cannot load graph file " << testGraphPath << ".\n";
+      FAIL();
+   }
+   graphFile.close();
+   auto cycles = testG1.simple_cycles();
+   vector<vector<int>> correct_cycles = {{0, 3}, {0, 1, 2, 3}};
+   EXPECT_THAT(cycles, testing::UnorderedElementsAreArray(correct_cycles));  
+
+   Graph testG2(3, true);
+   testG2.add_edge(0, 1);
+   testG2.add_edge(1, 0);
+   testG2.add_edge(1, 2);
+   testG2.add_edge(2, 1);
+   testG2.add_edge(2, 0);
+   cycles = testG2.simple_cycles();
+   correct_cycles = {{0, 1}, {1, 2}, {0, 1, 2}};
+   EXPECT_THAT(cycles, testing::UnorderedElementsAreArray(correct_cycles));  
+
+   Graph testG3(6, true);
+   testG3.add_edge(0, 1);
+   testG3.add_edge(1, 0);
+   testG3.add_edge(0, 2);
+   testG3.add_edge(1, 3);
+   testG3.add_edge(2, 3);
+   testG3.add_edge(3, 4);
+   testG3.add_edge(4, 2);
+   testG3.add_edge(3, 5);
+   cycles = testG3.simple_cycles();
+   correct_cycles = {{0, 1}, {2, 3, 4}};
+   EXPECT_THAT(cycles, testing::UnorderedElementsAreArray(correct_cycles));  
 }
 
 

@@ -1,5 +1,5 @@
-#include "../src/GraphMatch.hpp"
-#include "../src/Graph.hpp"
+#include "GraphMatch.hpp"
+#include "Graph.hpp"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>

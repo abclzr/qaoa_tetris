@@ -7,13 +7,15 @@
 #include <cstdlib>
 #include <cstdio>
 
-#include "src/Graph.hpp"
-#include "src/GraphMatch.hpp"
-#include "src/Mapping.hpp"
+#include "Graph.hpp"
+#include "GraphMatch.hpp"
+#include "BiMap.hpp"
 
 using namespace std;
 using namespace std::chrono;
 using namespace subiso;
+using namespace qaoagraph;
+using namespace bimap;
 
 // XXX: Move the following pattern graph generation func to a lib
 // This cycle here is the "cycle" that excludes swap cycle.
@@ -70,7 +72,7 @@ int main(int argc, char *argv[]) {
     int npattern = atoi(argv[2]);
 
     
-    vector<Mapping> result;
+    vector<BiMap> result;
     int iter = npattern % 2 == 0 ? 1 : 2;
     int total_duration = 0;
     for (; iter <= npattern; iter++) {

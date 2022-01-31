@@ -1,5 +1,5 @@
 #include "GraphMatch.hpp"  
-#include "Mapping.hpp"
+#include "BiMap.hpp"
 
 #include <unordered_map>
 #include <algorithm>
@@ -23,7 +23,7 @@ int GraphMatch::get_root_node() {
 }
 
 
-pair<int, unordered_set<int>> GraphMatch::get_next_node(Mapping &M, 
+pair<int, unordered_set<int>> GraphMatch::get_next_node(BiMap &M, 
                                 Graph &queryDAG,
                                 Graph &revQueryDAG,
                                 set<int> &expendable_u,
@@ -42,14 +42,14 @@ pair<int, unordered_set<int>> GraphMatch::get_next_node(Mapping &M,
         //get candidates of u
         for(auto v_id : uv2id[u]) {
             //make sure all candidates are not mapped
-            if(M.findDataIdx(v_id.first)) continue;
+            if(M.hasValue(v_id.first)) continue;
             
             expendable_id.insert(v_id.second);
         }
         
         auto u_parents = revQueryDAG.get_neighbors(u);
         for(auto p : u_parents) {
-            int v_p = M.getDataIdx(p); 
+            int v_p = M.getValueByKey(p); 
             int id_v_p = uv2id[p][v_p];
             auto id_neigh_v_p = CS.get_neighbors(id_v_p);
             for (auto it = expendable_id.begin(); it != expendable_id.end();) {
@@ -102,7 +102,7 @@ void GraphMatch::build_init_CS(Graph &initCS,
     // root = -1;
     int initCSNodeIndex = 0;
     for (auto u : revTopOrder) {
-        unordered_set<int> u_candidate_set = queryG_.get_candidate_set(u, dataG_, root);
+        unordered_set<int> u_candidate_set = queryG_.get_candidate_set(u, dataG_);
         // Each node in u_candidate_set is a node in initCS
         for (auto v : u_candidate_set) {
             initCS.add_node(initCSNodeIndex);
@@ -112,7 +112,7 @@ void GraphMatch::build_init_CS(Graph &initCS,
             // Check each u's out edge
             unordered_set<int> u_children = queryDAG_.get_neighbors(u);
             for (auto u_prime : u_children) {
-                unordered_set<int> u_child_candidate_set = queryG_.get_candidate_set(u_prime, dataG_, root);
+                unordered_set<int> u_child_candidate_set = queryG_.get_candidate_set(u_prime, dataG_);
                 for (auto v_prime : u_child_candidate_set) {
                     if (dataG_.has_edge(v, v_prime)) {
                         initCS.add_edge(uv2id[u][v], uv2id[u_prime][v_prime]);
@@ -250,8 +250,8 @@ void GraphMatch::build_CS() {
 }
 
 
-bool GraphMatch::backtrack(Mapping &M,
-                            vector<Mapping> &allM_prime, 
+bool GraphMatch::backtrack(BiMap &M,
+                            vector<BiMap> &allM_prime, 
                             set<int> expendable_u,
                             unordered_map<int,int> indegrees,
                             int count) {
@@ -271,7 +271,7 @@ bool GraphMatch::backtrack(Mapping &M,
             int v = vi.first;
             M.update(u, v);
             if (backtrack(M, allM_prime, expendable_u, indegrees, count) == false) return false;
-            M.eraseByQueryIdx(u);
+            M.eraseByKey(u);
         }
         for (auto nbr : queryDAG_.get_neighbors(u)) {
             if (indegrees[nbr] == queryDAG_.in_degree(nbr)) {
@@ -301,10 +301,10 @@ bool GraphMatch::backtrack(Mapping &M,
         }
         
         for (auto v : u_candidates.second) {
-            if (M.findDataIdx(v) == false) {
+            if (M.hasValue(v) == false) {
                 M.update(u, v);
                 if (backtrack(M, allM_prime, expendable_u, indegrees, count) == false) return false;
-                M.eraseByQueryIdx(u);
+                M.eraseByKey(u);
             }
         }
 
@@ -319,19 +319,19 @@ bool GraphMatch::backtrack(Mapping &M,
 }
 
 
-vector<Mapping> GraphMatch::subgraph_isomorphsim(int count) {
+vector<BiMap> GraphMatch::subgraph_isomorphsim(int count) {
     if (dataG_.num_edges() < queryG_.num_edges()) return {};
 
     build_CS();
 
-    Mapping M(queryG_.num_nodes());
-    vector<Mapping> allM_prime;
+    BiMap M(queryG_.num_nodes());
+    vector<BiMap> allM_prime;
     set<int> expendable_u;
     unordered_map<int, int> indegrees;
     backtrack(M, allM_prime, expendable_u, indegrees, count);
 
     if (allM_prime.size() >= count) {
-        return vector<Mapping>(allM_prime.begin(), allM_prime.begin() + count);
+        return vector<BiMap>(allM_prime.begin(), allM_prime.begin() + count);
     } else {
         return allM_prime;
     }

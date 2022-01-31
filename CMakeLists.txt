@@ -4,22 +4,32 @@ project(subiso VERSION 0.1.0)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
-add_library(graph src/Graph.cpp)
-add_library(mapping src/Mapping.cpp)
+set(QAOAGRAPH_SOURCE_DIR "${PROJECT_SOURCE_DIR}/submodule/QAOAGraph")
+set(BIMAP_SOURCE_DIR "${PROJECT_SOURCE_DIR}/submodule/BiMap")
+
+add_subdirectory(${QAOAGRAPH_SOURCE_DIR} EXCLUDE_FROM_ALL)
+add_subdirectory(${BIMAP_SOURCE_DIR} EXCLUDE_FROM_ALL)
+
 add_library(graph_match src/GraphMatch.cpp)
 
+include_directories("${PROJECT_SOURCE_DIR}/src")
+include_directories("${QAOAGRAPH_SOURCE_DIR}")
+include_directories("${BIMAP_SOURCE_DIR}")
+
+target_link_libraries(graph_match graph bimap)
+
 add_executable(subiso main.cpp)
-target_link_libraries(subiso graph graph_match mapping)
+target_link_libraries(subiso graph graph_match bimap)
 
 find_package(Gperftools)
 if (GPERFTOOLS_LIBRARIES AND GPERFTOOLS_INCLUDE_DIR)
         include_directories(${GPERFTOOLS_INCLUDE_DIR})
         add_executable(subiso_profile main.cpp)
-        target_link_libraries(subiso_profile graph graph_match mapping ${GPERFTOOLS_LIBRARIES})
+        target_link_libraries(subiso_profile graph graph_match bimap ${GPERFTOOLS_LIBRARIES})
 endif()
 
 add_executable(expr script/expr.cpp)
-target_link_libraries(expr graph graph_match mapping)
+target_link_libraries(expr graph graph_match bimap)
 
 
 include(CTest)
