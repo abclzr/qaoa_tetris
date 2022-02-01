@@ -1,0 +1,6 @@
+[submodule "submodule/QAOAGraph"]
+	path = submodule/QAOAGraph
+	url = https://github.com/Chenyh64/QAOAGraph.git
+[submodule "submodule/BiMap"]
+	path = submodule/BiMap
+	url = https://github.com/Chenyh64/BiMap.git
