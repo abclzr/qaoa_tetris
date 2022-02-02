@@ -10,8 +10,14 @@ set(BIMAP__ENABLE_TESTS OFF)
 set(QAOAGRAPH_SOURCE_DIR "${PROJECT_SOURCE_DIR}/submodule/QAOAGraph")
 set(BIMAP_SOURCE_DIR "${PROJECT_SOURCE_DIR}/submodule/BiMap")
 
-add_subdirectory(${QAOAGRAPH_SOURCE_DIR} EXCLUDE_FROM_ALL)
-add_subdirectory(${BIMAP_SOURCE_DIR} EXCLUDE_FROM_ALL)
+
+if (NOT TARGET graph)
+        add_subdirectory(${QAOAGRAPH_SOURCE_DIR} EXCLUDE_FROM_ALL)
+endif()
+
+if (NOT TARGET bimap)
+        add_subdirectory(${BIMAP_SOURCE_DIR} EXCLUDE_FROM_ALL)
+endif()
 
 add_library(graph_match src/GraphMatch.cpp)
 
