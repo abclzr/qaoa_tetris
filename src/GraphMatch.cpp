@@ -5,6 +5,10 @@
 #include <algorithm>
 
 using namespace std;
+using namespace qaoagraph;
+using namespace bimap;
+
+namespace subiso {
 
 namespace subiso {
 

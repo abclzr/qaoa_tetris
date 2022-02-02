@@ -45,6 +45,7 @@ TEST_F(SubIsoTest, Figure1Test) {
         cerr << "Cannot load query graph file ../../test/graph/fig1q.txt.\n";
         FAIL();
     }
+    queryGraphFile.close();
     Graph dataG;
     string dataGraphPath = "../../test/graph/fig1d.txt";
     ifstream dataGraphFile(dataGraphPath);
@@ -52,6 +53,7 @@ TEST_F(SubIsoTest, Figure1Test) {
         cerr << "Cannot load query graph file ../../test/graph/fig1d.txt.\n";
         FAIL();
     }
+    dataGraphFile.close();
 
     GraphMatch gm(queryG, dataG);
     vector<BiMap> result;
@@ -86,7 +88,11 @@ TEST_F(SubIsoTest, TriangleTest) {
 
     GraphMatch gm(queryG, dataG);
     vector<BiMap> result;
+<<<<<<< Updated upstream
     result = gm.subgraph_isomorphsim();
+=======
+    result = gm.subgraph_isomorphism();
+>>>>>>> Stashed changes
     cout << "subgraph isomorphsim finds " << result.size() << " results" << endl;
     for (int i = 0; i < result.size(); i++) {
         auto M = result[i];
