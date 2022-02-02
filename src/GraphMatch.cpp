@@ -10,8 +10,6 @@ using namespace bimap;
 
 namespace subiso {
 
-namespace subiso {
-
 int GraphMatch::get_root_node() {
     // FIXME: add tests.
     int min_u = -1;

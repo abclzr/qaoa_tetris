@@ -88,11 +88,7 @@ TEST_F(SubIsoTest, TriangleTest) {
 
     GraphMatch gm(queryG, dataG);
     vector<BiMap> result;
-<<<<<<< Updated upstream
     result = gm.subgraph_isomorphsim();
-=======
-    result = gm.subgraph_isomorphism();
->>>>>>> Stashed changes
     cout << "subgraph isomorphsim finds " << result.size() << " results" << endl;
     for (int i = 0; i < result.size(); i++) {
         auto M = result[i];
