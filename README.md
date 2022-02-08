@@ -24,6 +24,24 @@ CPUPROFILE=prof.out ./subiso_profile
 ~/go/bin/pprof -http=":" ./subiso prof.out
 ```
 
+## run experiments and upload to gsheet
+```bash
+cd ../expr
+./script.sh [machine_name] > [tmp file]
+Example: ./script.sh ilab1 &> result.out
+```
+
+The output file should look similar to example.out with no error messages.
+
+The shared google sheet used can be found [here](https://docs.google.com/spreadsheets/d/1WekXMxrAKkBEDEHHF83C5LDKBgRObKVpQj3k6xomSj4/edit?usp=sharing) 
+
+You should follow these steps
+1. Add a new sheet and rename it with a prefix "data_", e.g. "data_cpp_base"
+2. Copy everything in your output file to the created sheet and split the data into columns.
+3. In the menu, there should be a Refresh > Refresh button. Click that after you finish step 2. This will require your permission to run the Google App Script used in this gsheet.
+4. Now go to the "Dashboard" sheet, in B1:B5, you should be able to see your new sheet there. Select that and click Refresh again. You can now see the compared results in the table. Highlighted cells are those have the minimum value across all methods.
+
+
 # QAOA pattern match performance
 
 > **warning**: # of cylces for different methods are not comparable for now, will be updated later!
