@@ -268,6 +268,11 @@ bool GraphMatch::backtrack(BiMap &M,
                 expendable_u.insert(nbr);
             }
         }
+        for (int i = 0; i < queryDAG_.num_nodes(); ++i) {
+            if (queryDAG_.degree(i) == 0) {
+                expendable_u.insert(i);
+            }
+        }
         auto C_u = uv2id_[u];
         for (auto vi : C_u) {
             int v = vi.first;
