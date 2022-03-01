@@ -3,8 +3,10 @@
 
 #include <unordered_map>
 #include <algorithm>
+#include <chrono>
 
 using namespace std;
+using namespace std::chrono;
 using namespace qaoagraph;
 using namespace bimap;
 
@@ -25,10 +27,10 @@ int GraphMatch::get_root_node() {
 }
 
 
-pair<int, unordered_set<int>> GraphMatch::get_next_node(BiMap &M, 
+pair<int, vector<int>> GraphMatch::get_next_node(BiMap &M, 
                                 Graph &queryDAG,
                                 Graph &revQueryDAG,
-                                set<int> &expendable_u,
+                                unordered_set<int> &expendable_u,
                                 Graph &CS,
                                 unordered_map<int, unordered_map<int, int>> &uv2id, 
                                 unordered_map<int, pair<int, int>> &id2uv,
@@ -82,9 +84,9 @@ pair<int, unordered_set<int>> GraphMatch::get_next_node(BiMap &M,
     }
 
     //convert id of uv back to v
-    unordered_set<int> u_candidates;
+    vector<int> u_candidates;
     for(auto id : u_candidates_map[u_min]){
-        u_candidates.insert(id2uv[id].second);
+        u_candidates.push_back(id2uv[id].second);
     }
 
     if(u_min < 0)
@@ -229,23 +231,39 @@ void GraphMatch::build_weight_array(unordered_map<int, int>  &weightArray,
 }
 
 
-void GraphMatch::build_CS() {
+void GraphMatch::build_CS(bool enable_refine) {
     csG_ = Graph(true);
     // FIXME:Pre-store all candidate_set to a variable.
-    build_init_CS(csG_, uv2id_, id2uv_);
+#ifndef NDEBUG
+    std::chrono::_V2::system_clock::time_point start, stop;
 
-    int direction = 1; // 0: reversed
-    int iteration = 1;
-    while (true) {
-        // csG_.print_adjList();
-        // cout << "refine iteration " << iteration << endl;
-        // cout << "nodes before: " << csG_.num_nonempty_nodes() << endl;
-        if (refine_CS_wrapper(csG_, uv2id_, id2uv_, queryDAG_, direction) == false) {
-            break;
+    start = high_resolution_clock::now();
+#endif
+    build_init_CS(csG_, uv2id_, id2uv_);
+#ifndef NDEBUG
+    stop = high_resolution_clock::now();
+    auto build_cs_time = duration_cast<milliseconds>(stop - start).count();
+    printf("build init cs %ld ms; ", build_cs_time);
+#endif
+
+    if (enable_refine) {
+        int direction = 1; // 0: reversed
+        int iteration = 1;
+        while (true) {
+            // csG_.print_adjList();
+#ifndef NDEBUG            
+            cout << "refine iteration " << iteration << endl;
+            cout << "nodes before: " << csG_.num_nonempty_nodes() << endl;
+#endif
+            if (refine_CS_wrapper(csG_, uv2id_, id2uv_, queryDAG_, direction) == false) {
+                break;
+            }
+#ifndef NDEBUG
+            cout << "nodes after: " << csG_.num_nonempty_nodes() << endl;
+#endif
+            direction = 1 - direction;
+            iteration += 1;
         }
-        // cout << "nodes after: " << csG_.num_nonempty_nodes() << endl;
-        direction = 1 - direction;
-        iteration += 1;
     }
 
     build_weight_array(weightArray_, queryDAG_, csG_, uv2id_, id2uv_);
@@ -254,9 +272,11 @@ void GraphMatch::build_CS() {
 
 bool GraphMatch::backtrack(BiMap &M,
                             vector<BiMap> &allM_prime, 
-                            set<int> expendable_u,
+                            unordered_set<int> expendable_u,
                             unordered_map<int,int> indegrees,
                             int count) {
+    bt_count += 1;
+
     if (M.size() == queryG_.num_nodes()) {
         allM_prime.emplace_back(M);
         return allM_prime.size() < count;
@@ -287,7 +307,7 @@ bool GraphMatch::backtrack(BiMap &M,
             indegrees[nbr] -= 1;
         }
     } else {
-        pair<int, unordered_set<int>> u_candidates = get_next_node(M, 
+        auto u_candidates = get_next_node(M, 
                                 queryDAG_,
                                 revQueryDAG_,
                                 expendable_u,
@@ -306,6 +326,8 @@ bool GraphMatch::backtrack(BiMap &M,
                 expendable_u.insert(nbr);
             }
         }
+
+        random_shuffle ( u_candidates.second.begin(), u_candidates.second.end() );
         
         for (auto v : u_candidates.second) {
             if (M.hasValue(v) == false) {
@@ -329,11 +351,12 @@ bool GraphMatch::backtrack(BiMap &M,
 vector<BiMap> GraphMatch::subgraph_isomorphsim(int count) {
     if (dataG_.num_edges() < queryG_.num_edges()) return {};
 
+    srand((unsigned)time(NULL));
     build_CS();
 
     BiMap M(queryG_.num_nodes());
     vector<BiMap> allM_prime;
-    set<int> expendable_u;
+    unordered_set<int> expendable_u;
     unordered_map<int, int> indegrees;
     backtrack(M, allM_prime, expendable_u, indegrees, count);
 

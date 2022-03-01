@@ -18,6 +18,9 @@
 #include <unordered_map>
 #include <climits>
 #include <utility>
+#include <ctime>
+#include <cstdlib>
+#include <algorithm>
 #include "Graph.hpp"
 #include "BiMap.hpp"
 
@@ -43,11 +46,14 @@ private:
 					unordered_map<int, unordered_map<int, int>> &uv2id,
 					unordered_map<int, pair<int, int>> &id2uv,
 					Graph &queryDAG);
-	void build_CS();
+	void build_CS(bool enable_refine = false);
 
 	int get_root_node();
 
 public:
+
+	int bt_count = 0;
+
 	GraphMatch(Graph queryG, Graph dataG) : 
 		queryG_(queryG), dataG_(dataG) {
 		// Step 1: Build the dag graph for the query graph.
@@ -66,7 +72,7 @@ public:
 
 	bool backtrack(BiMap &M, 
 					vector<BiMap> &allM, 
-					set<int> expendable_u,
+					unordered_set<int> expendable_u,
 					unordered_map<int,int> indegrees,
 					int count=INT_MAX);
 
@@ -81,10 +87,10 @@ public:
 	
 
 
-	pair<int, unordered_set<int>> get_next_node(BiMap &M, 
+	pair<int, vector<int>> get_next_node(BiMap &M, 
                                 Graph &queryDAG,
                                 Graph &revQueryDAG,
-								set<int> &expendable_u,
+								unordered_set<int> &expendable_u,
                                 Graph &CS,
                                 unordered_map<int, unordered_map<int, int>> &uv2id, 
                                 unordered_map<int, pair<int, int>> &id2uv,
