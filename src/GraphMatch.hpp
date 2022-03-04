@@ -75,6 +75,7 @@ public:
 		dataG_.generate_edge_checker();
 		srand((unsigned)time(NULL));
     	build_CS();
+		csG_.generate_edge_checker();
 	}
 	GraphMatch() {};
 	~GraphMatch() {};

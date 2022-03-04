@@ -55,59 +55,52 @@ pair<int, vector<int>> GraphMatch::get_next_node(BiMap &M,
                                 unordered_map<int,int> &weightArray) {
 
     //looking for candidates for each expendable node
-    unordered_map<int, unordered_set<int>> u_candidates_map;
-    for (auto u : expendable_u) {
-        unordered_set<int> *expendable_id = &u_candidates_map[u];
+    int u_weight = INT_MAX;
+    int u_min = -1;
+    vector<int> u_min_candidates;
+
+    for(auto u : expendable_u) {
+        //calculating weight for each u in expendable_u
+        //using weight to find a u with min weight from expendable_u. 
+        int weight = 0;
+        vector<int> u_candidates;
+        vector<int> u_parents_ids;
+        for (auto p : revQueryDAG.get_neighbors(u)) {
+            u_parents_ids.push_back(uv2id[p][M.getValueByKey(p)]);
+        }
 
         //get candidates of u
         for(auto v_id : uv2id[u]) {
+            auto v = v_id.first, id = v_id.second;
             //make sure all candidates are not mapped
-            if(M.hasValue(v_id.first)) continue;
+            if(M.hasValue(v)) continue;
             
-            expendable_id->insert(v_id.second);
-        }
-        
-        auto u_parents = revQueryDAG.get_neighbors(u);
-        for(auto p : u_parents) {
-            int v_p = M.getValueByKey(p); 
-            int id_v_p = uv2id[p][v_p];
-            for (auto it = expendable_id->begin(); it != expendable_id->end();) {
-                if (!CS.has_edge(id_v_p, *it)) {
-                    it = expendable_id->erase(it);
-                } else {
-                    ++it;
-                }
+            if (any_of(u_parents_ids.begin(), u_parents_ids.end(), 
+                        [&](auto id_v_p){
+                            return !CS.has_edge_quick(id_v_p, id);
+                        })
+                        ) {
+                continue;
             }
-        }
-
-        // u_candidates_map[u] = expendable_id;
-    }
-
-    //calculating weight for each u in expendable_u
-    //using weight to find a u with min weight from expendable_u. 
-    int u_weight = INT_MAX;
-    int u_min = -1;
-    for(auto u : expendable_u) {
-        int weight = 0;
-        for(auto id : u_candidates_map[u]){
+            
+            u_candidates.push_back(v);
             weight += weightArray[id];
-        }
+            if (weight >= u_weight) {
+                break;
+            }
+        } 
+
         if (u_weight > weight){
             u_weight = weight;
             u_min = u;
+            u_min_candidates = u_candidates;
         }
     }
 
-    //convert id of uv back to v
-    vector<int> u_candidates;
-    for(auto id : u_candidates_map[u_min]){
-        u_candidates.push_back(id2uv[id].second);
-    }
-
     if(u_min < 0)
-        return make_pair(-1,u_candidates);
+        return make_pair(-1, u_min_candidates);
 
-    return make_pair(u_min,u_candidates);
+    return make_pair(u_min, u_min_candidates);
 }
 
 
@@ -420,7 +413,7 @@ bool GraphMatch::backtrack(BiMap &M,
             }
         }
 
-        random_shuffle ( u_candidates.second.begin(), u_candidates.second.end() );
+        // random_shuffle ( u_candidates.second.begin(), u_candidates.second.end() );
         
         for (auto v : u_candidates.second) {
             if (M.hasValue(v) == false) {
