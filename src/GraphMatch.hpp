@@ -32,21 +32,25 @@ namespace subiso {
 class GraphMatch
 {
 private:
+	bool hasSubgraph_ = true;
 	Graph queryG_;
+	int rootIndex_;
 	Graph queryDAG_;
 	Graph revQueryDAG_;
 	Graph dataG_;
 	Graph csG_;
-	unordered_map<int, unordered_map<int, int>> uv2id_;
+	vector<unordered_map<int, int>> uv2id_;
 	unordered_map<int, pair<int, int>> id2uv_;
 	unordered_map<int, int>  weightArray_;
 
 
 	bool refine_CS(Graph &initCS, 
-					unordered_map<int, unordered_map<int, int>> &uv2id,
+					vector<unordered_map<int, int>> &uv2id,
 					unordered_map<int, pair<int, int>> &id2uv,
 					Graph &queryDAG);
 	void build_CS(bool enable_refine = false);
+
+	void update_CS(bool enable_refine = false);
 
 	int get_root_node();
 
@@ -54,21 +58,37 @@ public:
 
 	int bt_count = 0;
 
-	GraphMatch(Graph queryG, Graph dataG) : 
+	bool early_check();
+
+	GraphMatch(Graph queryG, Graph dataG, int rootIndex = -1) : 
 		queryG_(queryG), dataG_(dataG) {
+		if (!early_check()) {
+			hasSubgraph_ = false;
+			return;
+		}
+
 		// Step 1: Build the dag graph for the query graph.
 		// Here we use a sequence of vertex/index instead of actually generating a graph.
-		int rootIndex = get_root_node();
-		queryDAG_ = queryG_.generate_dag(rootIndex);
+		rootIndex_ = rootIndex == -1 ? get_root_node() : rootIndex;
+		queryDAG_ = queryG_.generate_dag(rootIndex_);
 		revQueryDAG_ = queryDAG_.generate_reversed_graph();
+		dataG_.generate_edge_checker();
+		srand((unsigned)time(NULL));
+    	build_CS();
 	}
 	GraphMatch() {};
 	~GraphMatch() {};
+
+	int get_root_index() const { return rootIndex_; }
+
+	void set_root_index(int rootIndex) { rootIndex_ = rootIndex; }
 
 	Graph &get_query_G() {return queryG_;}
 	Graph &get_query_dag() {return queryDAG_;}
 	Graph &get_rev_query_dag() {return revQueryDAG_;}
 	Graph &get_data_G() {return dataG_;}
+
+	bool update_data_G(Graph dataG);
 
 	bool backtrack(BiMap &M, 
 					vector<BiMap> &allM, 
@@ -92,16 +112,18 @@ public:
                                 Graph &revQueryDAG,
 								unordered_set<int> &expendable_u,
                                 Graph &CS,
-                                unordered_map<int, unordered_map<int, int>> &uv2id, 
+                                vector<unordered_map<int, int>> &uv2id, 
                                 unordered_map<int, pair<int, int>> &id2uv,
                                 unordered_map<int,int> &weightArray);
 
+	void update_init_CS();
+
 	void build_init_CS(Graph &CS, 
-                        unordered_map<int, unordered_map<int, int>> &uv2id, 
+                        vector<unordered_map<int, int>> &uv2id, 
                         unordered_map<int, pair<int, int>> &id2uv);
 
 	bool refine_CS_wrapper(Graph &CS, 
-							unordered_map<int, unordered_map<int, int>> &uv2id,
+							vector<unordered_map<int, int>> &uv2id,
 							unordered_map<int, pair<int, int>> &id2uv,
 							Graph &queryDAG,
 							int reversed);
@@ -109,7 +131,7 @@ public:
 	void build_weight_array(unordered_map<int, int> &weightedArray,
 							Graph &queryDAG, 
 							Graph &CS,
-							unordered_map<int, unordered_map<int, int>> &uv2id,
+							vector<unordered_map<int, int>> &uv2id,
 							unordered_map<int, pair<int, int>> &id2uv);
 
 };

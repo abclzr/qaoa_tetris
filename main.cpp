@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
 
     if (argc != 4) {
         cerr << "./subiso [Query Graph] [QAOA Pattern Size] [direction]\n";
-        cerr << "E.g. ./subiso ../Benchmarks/16_2_0.txt 16 0\n";
+        cerr << "E.g. ./subiso ../Benchmarks/others/16_2_0.txt 16 0\n";
         return -1;
     }
 
@@ -90,19 +90,33 @@ int main(int argc, char *argv[]) {
         iter_end = 0;
         iter_delta = -1;        
     }
-
+    
+    // for (int i = 0; i < npattern; i++) {
     std::chrono::_V2::system_clock::time_point total_start, total_stop;
     total_start = high_resolution_clock::now();
 #ifndef NDEBUG
     std::chrono::_V2::system_clock::time_point start, stop;
-#endif
 
-    for (iter = iter_start; iter != iter_end; iter += iter_delta) {
+    start = high_resolution_clock::now();
+#endif
+    
+    Graph dataGraph = QAOALinearPattern(npattern, iter_start); // Pattern graph
+    dataGraph.generate_edge_checker();
+    GraphMatch gm(queryGraph, dataGraph);
+    
+#ifndef NDEBUG
+    stop = high_resolution_clock::now();
+    auto gm_init_time = duration_cast<milliseconds>(stop - start).count();
+    printf("init GraphMatch class: %ld ms\n", gm_init_time);
+#endif
+    
+    for (iter = iter_start + 1; iter != iter_end; iter += iter_delta) {
 #ifndef NDEBUG
         printf("iter: %d; ", iter);
         start = high_resolution_clock::now();
 #endif
-        Graph dataGraph = QAOALinearPattern(npattern, iter); // Pattern graph
+        dataGraph = QAOALinearPattern(npattern, iter); // Pattern graph
+        dataGraph.generate_edge_checker();
 #ifndef NDEBUG
         stop = high_resolution_clock::now();
         auto pattern_prepare_time = duration_cast<milliseconds>(stop - start).count();
@@ -110,11 +124,12 @@ int main(int argc, char *argv[]) {
 
         start = high_resolution_clock::now();
 #endif
-        GraphMatch gm(queryGraph, dataGraph);
+        // gm.update_data_G(dataGraph);
+        gm = GraphMatch(queryGraph, dataGraph);
 #ifndef NDEBUG
         stop = high_resolution_clock::now();
-        auto gm_init_time = duration_cast<milliseconds>(stop - start).count();
-        printf("init GraphMatch class: %ld ms; ", gm_init_time);
+        auto gm_update_time = duration_cast<milliseconds>(stop - start).count();
+        printf("update GraphMatch class: %ld ms; ", gm_update_time);
 
         start = high_resolution_clock::now();
 #endif
@@ -124,7 +139,7 @@ int main(int argc, char *argv[]) {
         auto subiso_time = duration_cast<milliseconds>(stop - start).count();
 
         // printf("# results: %ld;", result.size());
-        printf("explore elapsed: %ld ms; bt count: %d\n", subiso_time, gm.bt_count);
+        printf("explore elapsed: %ld ms; bt count: %d; root index: %d\n", subiso_time, gm.bt_count, gm.get_root_index());
 #endif
         if (direction == 0 && result.size() > 0) {
             break;
@@ -136,7 +151,9 @@ int main(int argc, char *argv[]) {
 
     total_stop = high_resolution_clock::now();
     auto total_duration = duration_cast<milliseconds>(total_stop - total_start).count();
-    printf("%.3fs,%d", total_duration / 1000.0, iter);
+    printf("%.3f,%d", total_duration / 1000.0, iter);
+    // printf("%d:%.3fs,%d\n", i, total_duration / 1000.0, iter);
+    // }
 
 
     return 0;

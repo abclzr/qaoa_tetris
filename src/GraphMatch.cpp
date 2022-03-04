@@ -14,16 +14,34 @@ namespace subiso {
 
 int GraphMatch::get_root_node() {
     // FIXME: add tests.
-    int min_u = -1;
-    float min_w = (float)dataG_.num_nodes();
-    for (int u = 0; u < queryG_.num_nodes(); ++u) {
-        float w = (float)queryG_.get_candidate_set(u, dataG_).size() / (float)queryG_.degree(u);
-        if (w <= min_w) {
-            min_u = u;
-            min_w = w;
+    // int min_u = -1;
+    // float min_w = (float)dataG_.num_nodes();
+    // for (int u = 0; u < queryG_.num_nodes(); ++u) {
+    //     float w = (float)queryG_.get_candidate_set(u, dataG_).size() / (float)queryG_.degree(u);
+    //     if (w <= min_w) {
+    //         min_u = u;
+    //         min_w = w;
+    //     }
+    // }
+    // return min_u;
+
+    int root_node = -1;
+    vector<int> degrees(queryG_.num_nodes());
+    for (int i = 0; i < queryG_.num_nodes(); ++i) {
+        degrees[i] = queryG_.degree(i);
+    }
+    float max_u = -1;
+    for (int i = 0; i < queryG_.num_nodes(); ++i) {
+        float w = (float)degrees[i];
+        for (auto nbr : queryG_.get_neighbors(i)) {
+            w += (float)degrees[nbr];
+        }
+        if (w / (1 + queryG_.get_neighbors(i).size()) > max_u) {
+            root_node = i;
+            max_u = w / (1 + queryG_.get_neighbors(i).size());
         }
     }
-    return min_u;
+    return root_node;
 }
 
 
@@ -32,40 +50,37 @@ pair<int, vector<int>> GraphMatch::get_next_node(BiMap &M,
                                 Graph &revQueryDAG,
                                 unordered_set<int> &expendable_u,
                                 Graph &CS,
-                                unordered_map<int, unordered_map<int, int>> &uv2id, 
+                                vector<unordered_map<int, int>> &uv2id, 
                                 unordered_map<int, pair<int, int>> &id2uv,
                                 unordered_map<int,int> &weightArray) {
-    //looking for expendable vertices
-    vector<int> iterOrder = queryDAG.get_topo_order();
 
     //looking for candidates for each expendable node
     unordered_map<int, unordered_set<int>> u_candidates_map;
     for (auto u : expendable_u) {
-        unordered_set<int> expendable_id;
+        unordered_set<int> *expendable_id = &u_candidates_map[u];
 
         //get candidates of u
         for(auto v_id : uv2id[u]) {
             //make sure all candidates are not mapped
             if(M.hasValue(v_id.first)) continue;
             
-            expendable_id.insert(v_id.second);
+            expendable_id->insert(v_id.second);
         }
         
         auto u_parents = revQueryDAG.get_neighbors(u);
         for(auto p : u_parents) {
             int v_p = M.getValueByKey(p); 
             int id_v_p = uv2id[p][v_p];
-            auto id_neigh_v_p = CS.get_neighbors(id_v_p);
-            for (auto it = expendable_id.begin(); it != expendable_id.end();) {
-                if (id_neigh_v_p.find(*it) == id_neigh_v_p.end()) {
-                    it = expendable_id.erase(it);
+            for (auto it = expendable_id->begin(); it != expendable_id->end();) {
+                if (!CS.has_edge(id_v_p, *it)) {
+                    it = expendable_id->erase(it);
                 } else {
                     ++it;
                 }
             }
         }
 
-        u_candidates_map[u] = expendable_id;
+        // u_candidates_map[u] = expendable_id;
     }
 
     //calculating weight for each u in expendable_u
@@ -98,28 +113,29 @@ pair<int, vector<int>> GraphMatch::get_next_node(BiMap &M,
 
 // XXX: add comments
 void GraphMatch::build_init_CS(Graph &initCS, 
-                                unordered_map<int, unordered_map<int, int>> &uv2id, 
+                                vector<unordered_map<int, int>> &uv2id, 
                                 unordered_map<int, pair<int, int>> &id2uv) {
 
     vector<int> revTopOrder = queryDAG_.get_reversed_topo_order();
-    int root = get_root_node();
+    int root = rootIndex_;
+    vector<unordered_set<int>> all_candidate_sets(queryG_.num_nodes());
+    for (int i = 0; i < all_candidate_sets.size(); ++i) {
+        all_candidate_sets[i] = queryG_.get_candidate_set(i, dataG_);
+    }
     // root = -1;
     int initCSNodeIndex = 0;
     for (auto u : revTopOrder) {
-        unordered_set<int> u_candidate_set = queryG_.get_candidate_set(u, dataG_);
         // Each node in u_candidate_set is a node in initCS
-        for (auto v : u_candidate_set) {
+        for (auto v : all_candidate_sets[u]) {
             initCS.add_node(initCSNodeIndex);
             uv2id[u][v] = initCSNodeIndex;
             id2uv[initCSNodeIndex] = make_pair(u, v);
             initCSNodeIndex++;
             // Check each u's out edge
-            unordered_set<int> u_children = queryDAG_.get_neighbors(u);
-            for (auto u_prime : u_children) {
-                unordered_set<int> u_child_candidate_set = queryG_.get_candidate_set(u_prime, dataG_);
-                for (auto v_prime : u_child_candidate_set) {
-                    if (dataG_.has_edge(v, v_prime)) {
-                        initCS.add_edge(uv2id[u][v], uv2id[u_prime][v_prime]);
+            for (auto u_prime : queryDAG_.get_neighbors(u)) {
+                for (auto v_prime : all_candidate_sets[u_prime]) {
+                    if (dataG_.has_edge_quick(v, v_prime)) {
+                        initCS.add_edge(initCSNodeIndex - 1, uv2id[u_prime][v_prime]);
                     }
                 }
             }
@@ -128,7 +144,7 @@ void GraphMatch::build_init_CS(Graph &initCS,
 }
 
 bool GraphMatch::refine_CS_wrapper(Graph &CS, 
-                                    unordered_map<int, unordered_map<int, int>> &uv2id,
+                                    vector<unordered_map<int, int>> &uv2id,
                                     unordered_map<int, pair<int, int>> &id2uv,
                                     Graph &queryDAG,
                                     int reversed) {
@@ -148,16 +164,12 @@ bool GraphMatch::refine_CS_wrapper(Graph &CS,
 
 // FIXME: add comments and rename variables based on paper/comment
 bool GraphMatch::refine_CS(Graph &CS, 
-                            unordered_map<int, unordered_map<int, int>> &uv2id,
+                            vector<unordered_map<int, int>> &uv2id,
                             unordered_map<int, pair<int, int>> &id2uv,
                             Graph &queryDAG) {
     unordered_set<int> filtered_nodes;
     // Iterate all nodes in reversed topo order
-    vector<int> iterOrder = queryDAG.get_reversed_topo_order();
-
-    for (auto u : iterOrder) {
-        // Get all u's children in q_dag
-        unordered_set<int> u_children = queryDAG.get_neighbors(u);
+    for (auto u : queryDAG.get_reversed_topo_order()) {
         // For each u, we get its C(u) in CS
         auto C_u = uv2id[u];
         for (auto vi : C_u) {
@@ -172,7 +184,7 @@ bool GraphMatch::refine_CS(Graph &CS,
                 int v_child_u = id2uv[v_child].first;
                 v_children_u.insert(v_child_u);
             }
-            if (v_children_u.size() != u_children.size()) {
+            if (v_children_u.size() != queryDAG.get_neighbors(u).size()) {
                 filtered_nodes.insert(id);
             }
         }
@@ -194,17 +206,15 @@ bool GraphMatch::refine_CS(Graph &CS,
 void GraphMatch::build_weight_array(unordered_map<int, int>  &weightArray,
                                     Graph &queryDAG, 
                                     Graph &CS,
-                                    unordered_map<int, unordered_map<int, int>> &uv2id,
+                                    vector<unordered_map<int, int>> &uv2id,
                                     unordered_map<int, pair<int, int>> &id2uv) {
     // Iterate all nodes in queryDAG in reversed topo order.
     // Case 1: If a node u has a child u' that has in_degree > 1. All v in C(u) has w(u, v) = 1
     // Case 2: Else for each v in C(u), sum w(u', v') for each u' and v' in C(u') while v' is v's child.
     // w(u, v) = the minimum sum w(u', v') of all u'.
-    vector<int> iterOrder = queryDAG.get_reversed_topo_order();
-    for (int u : iterOrder) {
-        unordered_set<int> u_children = queryDAG.get_neighbors(u);
+    for (int u : queryDAG.get_reversed_topo_order()) {
         auto C_u = uv2id[u];
-        if (all_of(u_children.begin(), u_children.end(), 
+        if (all_of(queryDAG.get_neighbors(u).begin(), queryDAG.get_neighbors(u).end(), 
             [&](int u_prime){
                 return queryDAG.in_degree(u_prime) > 1;
                 })) { // Case 1
@@ -239,11 +249,12 @@ void GraphMatch::build_CS(bool enable_refine) {
 
     start = high_resolution_clock::now();
 #endif
+    uv2id_ = vector<unordered_map<int, int>>(queryG_.num_nodes());
     build_init_CS(csG_, uv2id_, id2uv_);
 #ifndef NDEBUG
     stop = high_resolution_clock::now();
     auto build_cs_time = duration_cast<milliseconds>(stop - start).count();
-    printf("build init cs %ld ms; ", build_cs_time);
+    printf("build init cs %ld ms (%d/%d); ", build_cs_time, csG_.num_nodes(), csG_.num_edges());
 #endif
 
     if (enable_refine) {
@@ -266,7 +277,89 @@ void GraphMatch::build_CS(bool enable_refine) {
         }
     }
 
+#ifndef NDEBUG
+    start = high_resolution_clock::now();
+#endif
     build_weight_array(weightArray_, queryDAG_, csG_, uv2id_, id2uv_);
+#ifndef NDEBUG
+    stop = high_resolution_clock::now();
+    auto build_weight_array_time = duration_cast<milliseconds>(stop - start).count();
+    printf("build weight array %ld ms; ", build_weight_array_time);
+#endif
+}
+
+// TODO: add tests
+void GraphMatch::update_init_CS() {
+    vector<int> revTopOrder = queryDAG_.get_reversed_topo_order();
+    vector<unordered_set<int>> all_candidate_sets(queryG_.num_nodes());
+    for (int i = 0; i < all_candidate_sets.size(); ++i) {
+        all_candidate_sets[i] = queryG_.get_candidate_set(i, dataG_);
+    }
+    int root = rootIndex_;
+    // root = -1;
+    int CSNodeIndex = csG_.num_nodes();
+    for (auto u : revTopOrder) {
+        // Each node in u_candidate_set is a node in initCS
+        for (auto v : all_candidate_sets[u]) {
+            if (uv2id_[u].find(v) == uv2id_[u].end()) {
+                csG_.add_node(CSNodeIndex);
+                uv2id_[u][v] = CSNodeIndex;
+                id2uv_[CSNodeIndex] = make_pair(u, v);
+                CSNodeIndex++;
+            }
+            auto uv = uv2id_[u][v];
+            
+            // Check each u's out edge
+            for (auto u_prime : queryDAG_.get_neighbors(u)) {
+                for (auto v_prime : all_candidate_sets[u_prime]) {
+                    auto uv_prime = uv2id_[u_prime][v_prime];
+                    if (dataG_.has_edge_quick(v, v_prime) && !csG_.has_edge(uv, uv_prime)) {
+                        csG_.add_edge(uv, uv_prime);
+                    }
+                }
+            }
+        }
+    }    
+}
+
+
+void GraphMatch::update_CS(bool enable_refine) {
+
+    // FIXME:Pre-store all candidate_set to a variable.
+#ifndef NDEBUG
+    std::chrono::_V2::system_clock::time_point start, stop;
+
+    start = high_resolution_clock::now();
+#endif
+    update_init_CS();
+#ifndef NDEBUG
+    stop = high_resolution_clock::now();
+    auto update_cs_time = duration_cast<milliseconds>(stop - start).count();
+    printf("update init cs %ld ms; ", update_cs_time);
+#endif
+
+    if (enable_refine) {
+        int direction = 1; // 0: reversed
+        int iteration = 1;
+        while (true) {
+
+            if (refine_CS_wrapper(csG_, uv2id_, id2uv_, queryDAG_, direction) == false) {
+                break;
+            }
+
+            direction = 1 - direction;
+            iteration += 1;
+        }
+    }
+#ifndef NDEBUG
+    start = high_resolution_clock::now();
+#endif
+    build_weight_array(weightArray_, queryDAG_, csG_, uv2id_, id2uv_);
+#ifndef NDEBUG
+    stop = high_resolution_clock::now();
+    auto build_weight_array_time = duration_cast<milliseconds>(stop - start).count();
+    printf("build weight array %ld ms; ", build_weight_array_time);
+#endif
 }
 
 
@@ -281,7 +374,7 @@ bool GraphMatch::backtrack(BiMap &M,
         allM_prime.emplace_back(M);
         return allM_prime.size() < count;
     } else if (M.size() == 0) {
-        int u = get_root_node();
+        int u = rootIndex_;
         for (auto nbr : queryDAG_.get_neighbors(u)) {
             indegrees[nbr] += 1;
             if (indegrees[nbr] == queryDAG_.in_degree(nbr)) {
@@ -349,10 +442,7 @@ bool GraphMatch::backtrack(BiMap &M,
 
 
 vector<BiMap> GraphMatch::subgraph_isomorphsim(int count) {
-    if (dataG_.num_edges() < queryG_.num_edges()) return {};
-
-    srand((unsigned)time(NULL));
-    build_CS();
+    if (hasSubgraph_ == false) return {};
 
     BiMap M(queryG_.num_nodes());
     vector<BiMap> allM_prime;
@@ -366,6 +456,38 @@ vector<BiMap> GraphMatch::subgraph_isomorphsim(int count) {
         return allM_prime;
     }
 
+}
+
+// This won't change the rootIndex and the queryDAG
+bool GraphMatch::update_data_G(Graph dataG) {
+    if (dataG.num_nodes() != dataG_.num_nodes()) return false;
+    dataG_ = dataG;
+    dataG_.generate_edge_checker();
+    update_CS();
+
+    return true;
+}
+
+bool GraphMatch::early_check() {
+    if (dataG_.num_edges() < queryG_.num_edges()) {
+        return false;
+    }
+    vector<int> queryGDegrees(queryG_.num_nodes());
+    for (int i = 0; i < queryG_.num_nodes(); ++i) {
+        queryGDegrees[i] = queryG_.degree(i);
+    }
+    sort(queryGDegrees.begin(), queryGDegrees.end(), greater<int>());
+    vector<int> dataGDegrees(dataG_.num_nodes());
+    for (int i = 0; i < dataG_.num_nodes(); ++i) {
+        dataGDegrees[i] = dataG_.degree(i);
+    }
+    sort(dataGDegrees.begin(), dataGDegrees.end(), greater<int>());
+    for (int i = 0; i < queryGDegrees.size(); i++) {
+        if (queryGDegrees[i] > dataGDegrees[i]) {
+            return false;				
+        }
+    }
+    return true;
 }
 
 } // namespace: subiso

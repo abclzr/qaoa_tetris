@@ -67,7 +67,7 @@ TEST_F(CSTest, InitCSTest) {
     dataGraphFile.close();
     GraphMatch gm(queryG, dataG);
     Graph initCS(true);
-    unordered_map<int, unordered_map<int, int>> uv2id;
+    vector<unordered_map<int, int>> uv2id(queryG.num_nodes());;
     unordered_map<int, pair<int, int>> id2uv;
     gm.build_init_CS(initCS, uv2id, id2uv);
 
@@ -100,7 +100,7 @@ TEST_F(CSTest, RefineCSTest) {
     
     GraphMatch gm;
     Graph initCS(true);
-    unordered_map<int, unordered_map<int, int>> uv2id;
+    vector<unordered_map<int, int>> uv2id(queryDAG.num_nodes());
     unordered_map<int, pair<int, int>> id2uv;
     // Build initCS
     initCS = Graph(11, true);
@@ -163,7 +163,7 @@ TEST_F(CSTest, RefineCSTest) {
 TEST_F(CSTest, BuildWeightArrayTest) {
     Graph queryDAG = generate_fig5(true);
     Graph initCS(true);
-    unordered_map<int, unordered_map<int, int>> uv2id;
+    vector<unordered_map<int, int>> uv2id(queryDAG.num_nodes());;
     unordered_map<int, pair<int, int>> id2uv;
     // Build CS in Figure 5b
     Graph CS(23, true);
