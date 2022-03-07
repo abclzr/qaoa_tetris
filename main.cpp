@@ -142,6 +142,7 @@ int main(int argc, char *argv[]) {
         printf("explore elapsed: %ld ms; bt count: %d; root index: %d\n", subiso_time, gm.bt_count, gm.get_root_index());
 #endif
         if (direction == 0 && result.size() > 0) {
+            // result[0].print();
             break;
         } else if (direction == 1 && result.size() == 0) {
             iter += 1;
@@ -154,7 +155,26 @@ int main(int argc, char *argv[]) {
     printf("%.3f,%d", total_duration / 1000.0, iter);
     // printf("%d:%.3fs,%d\n", i, total_duration / 1000.0, iter);
     // }
-
-
+#ifndef NDEBUG
+    printf("\nChecking %ld results...", result.size());
+    for (int i = 0; i < result.size(); i++) {
+        auto M = result[i];
+        // For each edge u u' in the queryG, we can find edge M[u], M[u'] in dataG
+        for (auto edge : queryGraph.get_edges()) {
+            int u = edge[0], u_prime = edge[1];
+            if (dataGraph.has_edge(M.getValueByKey(u), M.getValueByKey(u_prime)) == false) {
+                printf("\nQuery graph has edge (%d, %d), ", u, u_prime);
+                printf("with mapping q:%d->d:%d and q:%d->d:%d, ", u, M.getValueByKey(u), u_prime, M.getValueByKey(u_prime));
+                printf("Data graph does not have edge (%d, %d).\n", M.getValueByKey(u), M.getValueByKey(u_prime));
+                printf("Query Graph:\n");
+                queryGraph.print_adjList();
+                printf("Data Graph:\n");
+                dataGraph.print_adjList();
+                return -1;
+            }
+        }
+    }
+    printf("Done.\n");
+#endif
     return 0;
 }
