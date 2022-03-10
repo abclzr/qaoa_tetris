@@ -54,7 +54,7 @@ namespace subiso {
                                                            Graph &CS,
                                                            vector<unordered_map<int, int>> &uv2id,
                                                            unordered_map<int, pair<int, int>> &id2uv,
-                                                           unordered_map<int, int> &weightArray) {
+                                                           vector<int> &weightArray) {
         // #ifndef NDEBUG
         //         printf("\nget_next_node lastU %d (%d), prevV %d, curV %d; candidates: ", lastExpandU, M.getValueByKey(lastExpandU), prevExpandV, curExpandV);
         //         for (auto it : expandable_u) {
@@ -175,25 +175,25 @@ namespace subiso {
         return make_pair(u_min, u_min_candidates);
     }
 
-    pair<int, vector<int>> GraphMatch::get_next_node(BiMap &M,
+    pair<int, bitset<32>> GraphMatch::get_next_node(BiMap &M,
                                                      Graph &queryDAG,
                                                      Graph &revQueryDAG,
                                                      unordered_set<int> &expandable_u,
                                                      Graph &CS,
                                                      vector<unordered_map<int, int>> &uv2id,
                                                      unordered_map<int, pair<int, int>> &id2uv,
-                                                     unordered_map<int, int> &weightArray) {
+                                                     vector<int> &weightArray) {
 
         // looking for candidates for each expandable node
         int u_weight = INT_MAX;
         int u_min = -1;
-        vector<int> u_min_candidates;
+        bitset<32> u_min_candidates;
 
         for (auto u : expandable_u) {
             // calculating weight for each u in expandable_u
             // using weight to find a u with min weight from expandable_u.
             int weight = 0;
-            vector<int> u_candidates;
+            bitset<32> u_candidates;
             vector<int> u_parents_ids;
             for (auto p : revQueryDAG.get_neighbors(u)) {
                 u_parents_ids.push_back(uv2id[p][M.getValueByKey(p)]);
@@ -213,14 +213,14 @@ namespace subiso {
                     continue;
                 }
 
-                u_candidates.push_back(v);
+                u_candidates.set(v);
                 weight += weightArray[id];
                 if (weight >= u_weight) {
                     break;
                 }
             }
 
-            if (u_candidates.size() == 0) {
+            if (u_candidates.count() == 0) {
                 return make_pair(-1, u_candidates);
             }
 
@@ -327,7 +327,7 @@ namespace subiso {
         return true;
     }
 
-    void GraphMatch::build_weight_array(unordered_map<int, int> &weightArray,
+    void GraphMatch::build_weight_array(vector<int> &weightArray,
                                         Graph &queryDAG,
                                         Graph &CS,
                                         vector<unordered_map<int, int>> &uv2id,
@@ -404,6 +404,7 @@ namespace subiso {
 #ifndef NDEBUG
         start = high_resolution_clock::now();
 #endif
+        weightArray_ = vector<int>(csG_.num_nodes(), 0);
         build_weight_array(weightArray_, queryDAG_, csG_, uv2id_, id2uv_);
 #ifndef NDEBUG
         stop = high_resolution_clock::now();
@@ -516,7 +517,7 @@ namespace subiso {
     bool GraphMatch::backtrack(BiMap &M,
                                vector<BiMap> &allM_prime,
                                unordered_set<int> expandable_u,
-                               unordered_map<int, int> indegrees,
+                               vector<int> &indegrees,
                                int count) {
         bt_count += 1;
 
@@ -575,9 +576,9 @@ namespace subiso {
             //     printf("%d, ", v);
             // }
             // printf("\n");
-            if (u != -1 && v_candidates.size() > 0) {
+            if (u != -1 && v_candidates.count() > 0) {
                 expandable_u.erase(u);
-
+/*
                 // Here we get candidates for all other nodes
                 vector<bitset<32>> candidates(queryG_.num_nodes());
                 vector<int> candidates_ids;
@@ -629,7 +630,7 @@ namespace subiso {
                     }
                 }
                 // printf("=====\n");
-                
+*/                
                 // update in_degree & expandable_u
                 for (auto nbr : queryDAG_.get_neighbors(u)) {
                     indegrees[nbr] += 1;
@@ -640,7 +641,8 @@ namespace subiso {
 
                 // random_shuffle ( u_candidates.second.begin(), u_candidates.second.end() );
 
-                for (auto v : v_candidates) {
+                // for (auto v : v_candidates) {
+                for (auto v = v_candidates._Find_first(); v < v_candidates.size(); v = v_candidates._Find_next(v)) {
                     // printf("v %d\n", v);
                     if (M.hasValue(v) == false) {
                         M.update(u, v);
@@ -785,7 +787,7 @@ namespace subiso {
 
         BiMap M(queryG_.num_nodes());
         vector<BiMap> allM_prime;
-        unordered_map<int, int> indegrees;
+        vector<int> indegrees(queryG_.num_nodes(), 0);
 
         unordered_set<int> expandable_u;
         backtrack(M, allM_prime, expandable_u, indegrees, count);

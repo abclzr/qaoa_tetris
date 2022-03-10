@@ -41,7 +41,7 @@ namespace subiso {
         Graph csG_;
         vector<unordered_map<int, int>> uv2id_;
         unordered_map<int, pair<int, int>> id2uv_;
-        unordered_map<int, int> weightArray_;
+        vector<int> weightArray_;
 
         bool refine_CS(Graph &initCS,
                        vector<unordered_map<int, int>> &uv2id,
@@ -97,7 +97,7 @@ namespace subiso {
         bool backtrack(BiMap &M,
                        vector<BiMap> &allM,
                        unordered_set<int> expandable_u,
-                       unordered_map<int, int> indegrees,
+                       vector<int> &indegrees,
                        int count = INT_MAX);
 
         bool backtrack1(BiMap &M,
@@ -117,14 +117,14 @@ namespace subiso {
         // but for testing issue, they are public now check the following link to improve.
         // https://stackoverflow.com/questions/47354280/what-is-the-best-way-of-testing-private-methods-with-googletest
 
-        pair<int, vector<int>> get_next_node(BiMap &M,
+        pair<int, bitset<32>> get_next_node(BiMap &M,
                                              Graph &queryDAG,
                                              Graph &revQueryDAG,
                                              unordered_set<int> &expandable_u,
                                              Graph &CS,
                                              vector<unordered_map<int, int>> &uv2id,
                                              unordered_map<int, pair<int, int>> &id2uv,
-                                             unordered_map<int, int> &weightArray);
+                                             vector<int> &weightArray);
 
         pair<int, vector<int>> get_next_node1(BiMap &M,
                                                    Graph &queryDAG,
@@ -136,7 +136,7 @@ namespace subiso {
                                                    Graph &CS,
                                                    vector<unordered_map<int, int>> &uv2id,
                                                    unordered_map<int, pair<int, int>> &id2uv,
-                                                   unordered_map<int, int> &weightArray);
+                                                   vector<int> &weightArray);
 
         void update_init_CS();
 
@@ -151,7 +151,7 @@ namespace subiso {
                                Graph &queryDAG,
                                int reversed);
 
-        void build_weight_array(unordered_map<int, int> &weightedArray,
+        void build_weight_array(vector<int> &weightedArray,
                                 Graph &queryDAG,
                                 Graph &CS,
                                 vector<unordered_map<int, int>> &uv2id,

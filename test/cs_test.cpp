@@ -201,9 +201,9 @@ TEST_F(CSTest, BuildWeightArrayTest) {
     }
     
     GraphMatch gm;
-    unordered_map<int, int> weightArray;
+    vector<int> weightArray(23, 0);
     gm.build_weight_array(weightArray, queryDAG, CS, uv2id, id2uv);
-    unordered_map<int, int> correctWeightArray; // Figure 5c
+    vector<int> correctWeightArray(23, 0); // Figure 5c
     for (int u = 0; u < 23; u++) correctWeightArray[u] = 1;
     correctWeightArray[0] = 2;
     correctWeightArray[6] = 4;
