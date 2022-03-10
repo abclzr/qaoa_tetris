@@ -76,6 +76,8 @@ int main(int argc, char *argv[]) {
     }
     queryGraphFile.close();
 
+    printf("queryGraph diameter: %d\n", queryGraph.diameter());
+
     int npattern = atoi(argv[2]);
     int direction = atoi(argv[3]);
 
@@ -113,34 +115,59 @@ int main(int argc, char *argv[]) {
     for (iter = iter_start + 1; iter != iter_end; iter += iter_delta) {
 #ifndef NDEBUG
         printf("iter: %d; ", iter);
+        fflush(stdout);
         start = high_resolution_clock::now();
 #endif
         dataGraph = QAOALinearPattern(npattern, iter); // Pattern graph
         dataGraph.generate_edge_checker();
+        printf("data Graph diameter: %d; ", dataGraph.diameter());
 #ifndef NDEBUG
         stop = high_resolution_clock::now();
         auto pattern_prepare_time = duration_cast<milliseconds>(stop - start).count();
-        printf("pattern graph prepare: %ld ms; ", pattern_prepare_time);
-
-        start = high_resolution_clock::now();
+        printf("pattern graph prepare: %ld ms;\n", pattern_prepare_time);
+        fflush(stdout);
 #endif
-        // gm.update_data_G(dataGraph);
-        gm = GraphMatch(queryGraph, dataGraph);
+
+        int root = gm.get_root_node(queryGraph);
+        auto rootCandidates = queryGraph.get_candidate_set(root, dataGraph);
+
+        rootCandidates = {-1};
+
+        for (auto rootCandidate : rootCandidates) {
 #ifndef NDEBUG
-        stop = high_resolution_clock::now();
-        auto gm_update_time = duration_cast<milliseconds>(stop - start).count();
-        printf("update GraphMatch class: %ld ms; ", gm_update_time);
-
-        start = high_resolution_clock::now();
+            start = high_resolution_clock::now();
 #endif
-        result = gm.subgraph_isomorphsim(1);
+            // gm.update_data_G(dataGraph);
+            gm = GraphMatch(queryGraph, dataGraph, root, rootCandidate);
+            if (gm.has_subgraph() == false) break;
 #ifndef NDEBUG
-        stop = high_resolution_clock::now();
-        auto subiso_time = duration_cast<milliseconds>(stop - start).count();
-
-        // printf("# results: %ld;", result.size());
-        printf("explore elapsed: %ld ms; bt count: %d; root index: %d\n", subiso_time, gm.bt_count, gm.get_root_index());
+            stop = high_resolution_clock::now();
+            auto gm_update_time = duration_cast<milliseconds>(stop - start).count();
+            printf("update GraphMatch class: %ld ms; ", gm_update_time);
+            fflush(stdout);
 #endif
+            if (gm.has_subgraph() == false) break;
+#ifndef NDEBUG
+            start = high_resolution_clock::now();
+#endif
+            result = gm.subgraph_isomorphsim(1);
+#ifndef NDEBUG
+            stop = high_resolution_clock::now();
+            auto subiso_time = duration_cast<milliseconds>(stop - start).count();
+
+            // printf("# results: %ld;", result.size());
+            printf("\troot %d; root candidate: %d; ", root, rootCandidate);
+            printf("\texplore elapsed: %ld ms; bt count: %d; root index: %d\n", subiso_time, gm.bt_count, gm.get_root_index());
+#endif
+            if (direction == 0 && result.size() > 0) {
+                // result[0].print();
+                break;
+            } else if (direction == 1 && result.size() == 0) {
+                iter += 1;
+                break;
+            }
+        }
+
         if (direction == 0 && result.size() > 0) {
             // result[0].print();
             break;
@@ -148,6 +175,7 @@ int main(int argc, char *argv[]) {
             iter += 1;
             break;
         }
+
     }
 
     total_stop = high_resolution_clock::now();

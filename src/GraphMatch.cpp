@@ -12,7 +12,7 @@ using namespace bimap;
 
 namespace subiso {
 
-    int GraphMatch::get_root_node() {
+    int GraphMatch::get_root_node(Graph graph) {
         // FIXME: add tests.
         // int min_u = -1;
         // float min_w = (float)dataG_.num_nodes();
@@ -26,19 +26,19 @@ namespace subiso {
         // return min_u;
 
         int root_node = -1;
-        vector<int> degrees(queryG_.num_nodes());
-        for (int i = 0; i < queryG_.num_nodes(); ++i) {
-            degrees[i] = queryG_.degree(i);
+        vector<int> degrees(graph.num_nodes());
+        for (int i = 0; i < graph.num_nodes(); ++i) {
+            degrees[i] = graph.degree(i);
         }
         float max_u = -1;
-        for (int i = 0; i < queryG_.num_nodes(); ++i) {
+        for (int i = 0; i < graph.num_nodes(); ++i) {
             float w = (float)degrees[i];
-            for (auto nbr : queryG_.get_neighbors(i)) {
+            for (auto nbr : graph.get_neighbors(i)) {
                 w += (float)degrees[nbr];
             }
-            if (w / (1 + queryG_.get_neighbors(i).size()) > max_u) {
+            if (w / (1 + graph.get_neighbors(i).size()) > max_u) {
                 root_node = i;
-                max_u = w / (1 + queryG_.get_neighbors(i).size());
+                max_u = w / (1 + graph.get_neighbors(i).size());
             }
         }
         return root_node;
@@ -237,13 +237,15 @@ namespace subiso {
     // XXX: add comments
     void GraphMatch::build_init_CS(Graph &initCS,
                                    vector<unordered_map<int, int>> &uv2id,
-                                   unordered_map<int, pair<int, int>> &id2uv) {
+                                   unordered_map<int, pair<int, int>> &id2uv,
+                                   int rootCandidate) {
 
         vector<int> revTopOrder = queryDAG_.get_reversed_topo_order();
         int root = rootIndex_;
         vector<unordered_set<int>> all_candidate_sets(queryG_.num_nodes());
         for (int i = 0; i < all_candidate_sets.size(); ++i) {
             all_candidate_sets[i] = queryG_.get_candidate_set(i, dataG_);
+            if (i == root && rootCandidate != -1) all_candidate_sets[i] = {rootCandidate};
         }
         // root = -1;
         int initCSNodeIndex = 0;
@@ -363,7 +365,7 @@ namespace subiso {
         }
     }
 
-    void GraphMatch::build_CS(bool enable_refine) {
+    void GraphMatch::build_CS(bool enable_refine, int rootCandidate) {
         csG_ = Graph(true);
         // FIXME:Pre-store all candidate_set to a variable.
 #ifndef NDEBUG
@@ -372,11 +374,12 @@ namespace subiso {
         start = high_resolution_clock::now();
 #endif
         uv2id_ = vector<unordered_map<int, int>>(queryG_.num_nodes());
-        build_init_CS(csG_, uv2id_, id2uv_);
+        build_init_CS(csG_, uv2id_, id2uv_, rootCandidate);
 #ifndef NDEBUG
         stop = high_resolution_clock::now();
         auto build_cs_time = duration_cast<milliseconds>(stop - start).count();
-        printf("build init cs %ld ms (%d/%d); ", build_cs_time, csG_.num_nodes(), csG_.num_edges());
+        printf("\tbuild init cs %ld ms (%d/%d);\n", build_cs_time, csG_.num_nodes(), csG_.num_edges());
+        fflush(stdout);
 #endif
 
         if (enable_refine) {
@@ -385,14 +388,13 @@ namespace subiso {
             while (true) {
                 // csG_.print_adjList();
 #ifndef NDEBUG
-                cout << "refine iteration " << iteration << endl;
-                cout << "nodes before: " << csG_.num_nonempty_nodes() << endl;
+                printf("\trefine iteration %d before %d/%d\n", iteration, csG_.num_nonempty_nodes(), csG_.num_edges());
 #endif
                 if (refine_CS_wrapper(csG_, uv2id_, id2uv_, queryDAG_, direction) == false) {
                     break;
                 }
 #ifndef NDEBUG
-                cout << "nodes after: " << csG_.num_nonempty_nodes() << endl;
+                printf("\trefine iteration %d after %d/%d\n", iteration, csG_.num_nonempty_nodes(), csG_.num_edges());
 #endif
                 direction = 1 - direction;
                 iteration += 1;
@@ -483,6 +485,34 @@ namespace subiso {
 #endif
     }
 
+    template<typename T>
+    bool combo_check(const T& c, int k, const vector<bitset<32>> &candidates) {
+        int n = c.size();
+        int combo = (1 << k) - 1;       // k bit sets
+        while (combo < 1<<n) {
+            
+            // checking part
+            bitset<32> bs;
+            for (int i = 0; i < n; ++i) {
+                if ((combo >> i) & 1)
+                    // cout << c[i] << ' ';
+                    bs |= candidates[c[i]];
+            }
+            // cout << endl;
+            if (bs.count() < k) {
+                return false;
+            }
+
+            int x = combo & -combo;
+            int y = combo + x;
+            int z = (combo & ~y);
+            combo = z / x;
+            combo >>= 1;
+            combo |= y;
+        }
+        return true;
+    }
+
     bool GraphMatch::backtrack(BiMap &M,
                                vector<BiMap> &allM_prime,
                                unordered_set<int> expandable_u,
@@ -548,6 +578,58 @@ namespace subiso {
             if (u != -1 && v_candidates.size() > 0) {
                 expandable_u.erase(u);
 
+                // Here we get candidates for all other nodes
+                vector<bitset<32>> candidates(queryG_.num_nodes());
+                vector<int> candidates_ids;
+                for (int uu = 0; uu < queryG_.num_nodes(); ++uu) {
+                    if (M.hasKey(uu)) continue;
+                    if (expandable_u.find(uu) != expandable_u.end()) continue;
+
+                    vector<int> u_parents_ids;
+                    for (auto p : revQueryDAG_.get_neighbors(uu)) {
+                        if (!M.hasKey(p)) continue;
+                        u_parents_ids.push_back(uv2id_[p][M.getValueByKey(p)]);
+                    }
+
+                    // get candidates of uu
+                    for (auto v_id : uv2id_[uu]) {
+                        auto v = v_id.first, id = v_id.second;
+                        // make sure all candidates are not mapped
+                        if (M.hasValue(v)) continue;
+                        if (any_of(u_parents_ids.begin(), u_parents_ids.end(),
+                           [&](auto id_v_p) {
+                               return !csG_.has_edge_quick(id_v_p, id);
+                           })) {
+                            continue;
+                        }
+                        candidates[uu].set(v);
+                    }
+
+                    if (candidates[uu].count() == 0) { 
+                        // printf("quit\n"); 
+                        // printf("=====\n");
+                        return true; 
+                    } else {
+                        candidates_ids.push_back(uu);
+                    }
+                }
+                // for (auto id : candidates_ids) {
+                //     cout << id << " " << candidates[id] << endl;
+                // }
+                // (Hall’s Marriage Theorem). Let G = (L, R, E) be a bipartite graph with |L| = |R|.
+                // Suppose that for every S ⊆ L, we have |Γ(S)| ≥ |S|. Then G has a perfect matching.
+                int maxK = 3;
+                maxK = maxK <= candidates_ids.size() ? maxK : candidates_ids.size();
+                for (int k = 1; k <= maxK; ++k) {
+                    // select k non-empty candidates
+                    if (combo_check(candidates_ids, k, candidates) == false) {
+                        // printf("quit\n"); 
+                        // printf("=====\n");
+                        return true;
+                    }
+                }
+                // printf("=====\n");
+                
                 // update in_degree & expandable_u
                 for (auto nbr : queryDAG_.get_neighbors(u)) {
                     indegrees[nbr] += 1;
@@ -698,7 +780,7 @@ namespace subiso {
     }
 
     vector<BiMap> GraphMatch::subgraph_isomorphsim(int count) {
-        if (hasSubgraph_ == false)
+        if (has_subgraph() == false)
             return {};
 
         BiMap M(queryG_.num_nodes());

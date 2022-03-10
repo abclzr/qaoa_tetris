@@ -23,6 +23,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <bitset>
 
 using namespace qaoagraph;
 using namespace bimap;
@@ -46,18 +47,20 @@ namespace subiso {
                        vector<unordered_map<int, int>> &uv2id,
                        unordered_map<int, pair<int, int>> &id2uv,
                        Graph &queryDAG);
-        void build_CS(bool enable_refine = false);
+        void build_CS(bool enable_refine = false, int rootCandidate = -1);
 
         void update_CS(bool enable_refine = false);
-
-        int get_root_node();
 
     public:
         int bt_count = 0;
 
+        bool has_subgraph() { return hasSubgraph_; }
+
+        static int get_root_node(Graph graph);
+
         bool early_check();
 
-        GraphMatch(Graph queryG, Graph dataG, int rootIndex = -1) : queryG_(queryG), dataG_(dataG) {
+        GraphMatch(Graph queryG, Graph dataG, int rootIndex = -1, int rootCandidate = -1) : queryG_(queryG), dataG_(dataG) {
             if (!early_check()) {
                 hasSubgraph_ = false;
                 return;
@@ -65,13 +68,16 @@ namespace subiso {
 
             // Step 1: Build the dag graph for the query graph.
             // Here we use a sequence of vertex/index instead of actually generating a graph.
-            rootIndex_ = rootIndex == -1 ? get_root_node() : rootIndex;
+            rootIndex_ = rootIndex == -1 ? get_root_node(queryG_) : rootIndex;
             queryDAG_ = queryG_.generate_dag(rootIndex_);
             revQueryDAG_ = queryDAG_.generate_reversed_graph();
 			// queryDAG_.print_adjList();
             dataG_.generate_edge_checker();
             srand((unsigned)time(NULL));
-            build_CS();
+            if (rootCandidate == -1)
+                build_CS(true);
+            else 
+                build_CS(true, rootCandidate);
             csG_.generate_edge_checker();
         }
         GraphMatch(){};
@@ -136,7 +142,8 @@ namespace subiso {
 
         void build_init_CS(Graph &CS,
                            vector<unordered_map<int, int>> &uv2id,
-                           unordered_map<int, pair<int, int>> &id2uv);
+                           unordered_map<int, pair<int, int>> &id2uv,
+                           int rootCandidate = -1);
 
         bool refine_CS_wrapper(Graph &CS,
                                vector<unordered_map<int, int>> &uv2id,
