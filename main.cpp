@@ -76,8 +76,6 @@ int main(int argc, char *argv[]) {
     }
     queryGraphFile.close();
 
-    printf("queryGraph diameter: %d\n", queryGraph.diameter());
-
     int npattern = atoi(argv[2]);
     int direction = atoi(argv[3]);
 
@@ -120,7 +118,6 @@ int main(int argc, char *argv[]) {
 #endif
         dataGraph = QAOALinearPattern(npattern, iter); // Pattern graph
         dataGraph.generate_edge_checker();
-        printf("data Graph diameter: %d; ", dataGraph.diameter());
 #ifndef NDEBUG
         stop = high_resolution_clock::now();
         auto pattern_prepare_time = duration_cast<milliseconds>(stop - start).count();
