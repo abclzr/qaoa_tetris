@@ -1,2 +1,4 @@
 build/
 .vscode/
+expr/result.txt
+.gitignore
