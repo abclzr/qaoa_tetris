@@ -68,7 +68,7 @@ TEST_F(CSTest, InitCSTest) {
     GraphMatch gm(queryG, dataG);
     Graph initCS(true);
     vector<unordered_map<int, int>> uv2id(queryG.num_nodes());;
-    unordered_map<int, pair<int, int>> id2uv;
+    unordered_map<int, uint32_t> id2uv;
     gm.build_init_CS(initCS, uv2id, id2uv);
 
     auto edges = initCS.get_edges();
@@ -76,8 +76,8 @@ TEST_F(CSTest, InitCSTest) {
     // exists and v is in u's candidate set as defined in the paper.
     for (auto edge : edges) {
         int id1 = edge[0], id2 = edge[1];
-        int u = id2uv[id1].first, v = id2uv[id1].second;
-        int u_prime = id2uv[id2].first, v_prime = id2uv[id2].second;
+        int u = id2uv[id1] >> 16, v = id2uv[id1] & 0xffff;
+        int u_prime = id2uv[id2] >> 16, v_prime = id2uv[id2] & 0xffff;
         // cout << u << " " << u_prime << " " << v << " " << v_prime;
         ASSERT_EQ(gm.get_query_dag().has_edge(u, u_prime), true);
         ASSERT_EQ(gm.get_data_G().has_edge(v, v_prime), true);
@@ -101,7 +101,7 @@ TEST_F(CSTest, RefineCSTest) {
     GraphMatch gm;
     Graph initCS(true);
     vector<unordered_map<int, int>> uv2id(queryDAG.num_nodes());
-    unordered_map<int, pair<int, int>> id2uv;
+    unordered_map<int, uint32_t> id2uv;
     // Build initCS
     initCS = Graph(11, true);
     set<vector<int>> edges = {
@@ -119,7 +119,8 @@ TEST_F(CSTest, RefineCSTest) {
         for (int v : u2v[u]) {
             // In this example id = v
             uv2id[u][v - 1] = v - 1;
-            id2uv[v - 1] = make_pair(u, v - 1);
+            // id2uv[v - 1] = make_pair(u, v - 1);
+            id2uv[v - 1] = (u << 16) + (v - 1);
         }
     }
     EXPECT_EQ(initCS.num_nodes(), 11);
@@ -164,7 +165,7 @@ TEST_F(CSTest, BuildWeightArrayTest) {
     Graph queryDAG = generate_fig5(true);
     Graph initCS(true);
     vector<unordered_map<int, int>> uv2id(queryDAG.num_nodes());;
-    unordered_map<int, pair<int, int>> id2uv;
+    unordered_map<int, uint32_t> id2uv;
     // Build CS in Figure 5b
     Graph CS(23, true);
     // Add edges
@@ -195,7 +196,8 @@ TEST_F(CSTest, BuildWeightArrayTest) {
         for (int j = 0; j < u2v[u].size(); j++) {
             int v = u2v[u][j], id = u2id[u][j];
             uv2id[u][v] = id;
-            id2uv[id] = make_pair(u, v);
+            // id2uv[id] = make_pair(u, v);
+            id2uv[id] = (u << 16) + v;
             id++;
         }
     }

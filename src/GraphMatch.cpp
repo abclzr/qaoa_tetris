@@ -53,7 +53,7 @@ namespace subiso {
                                                            int curExpandV,
                                                            Graph &CS,
                                                            vector<unordered_map<int, int>> &uv2id,
-                                                           unordered_map<int, pair<int, int>> &id2uv,
+                                                           unordered_map<int, uint32_t> &id2uv,
                                                            vector<int> &weightArray) {
         // #ifndef NDEBUG
         //         printf("\nget_next_node lastU %d (%d), prevV %d, curV %d; candidates: ", lastExpandU, M.getValueByKey(lastExpandU), prevExpandV, curExpandV);
@@ -175,14 +175,7 @@ namespace subiso {
         return make_pair(u_min, u_min_candidates);
     }
 
-    pair<int, bitset<32>> GraphMatch::get_next_node(BiMap &M,
-                                                     Graph &queryDAG,
-                                                     Graph &revQueryDAG,
-                                                     unordered_set<int> &expandable_u,
-                                                     Graph &CS,
-                                                     vector<unordered_map<int, int>> &uv2id,
-                                                     unordered_map<int, pair<int, int>> &id2uv,
-                                                     vector<int> &weightArray) {
+    pair<int, bitset<32>> GraphMatch::get_next_node(BiMap &M, unordered_set<int> &expandable_u) {
 
         // looking for candidates for each expandable node
         int u_weight = INT_MAX;
@@ -195,12 +188,12 @@ namespace subiso {
             int weight = 0;
             bitset<32> u_candidates;
             vector<int> u_parents_ids;
-            for (auto p : revQueryDAG.get_neighbors(u)) {
-                u_parents_ids.push_back(uv2id[p][M.getValueByKey(p)]);
+            for (auto p : revQueryDAG_.get_neighbors(u)) {
+                u_parents_ids.push_back(uv2id_[p][M.getValueByKey(p)]);
             }
 
             // get candidates of u
-            for (auto v_id : uv2id[u]) {
+            for (auto v_id : uv2id_[u]) {
                 auto v = v_id.first, id = v_id.second;
                 // make sure all candidates are not mapped
                 if (M.hasValue(v))
@@ -208,13 +201,13 @@ namespace subiso {
 
                 if (any_of(u_parents_ids.begin(), u_parents_ids.end(),
                            [&](auto id_v_p) {
-                               return !CS.has_edge_quick(id_v_p, id);
+                               return !csG_.has_edge_quick(id_v_p, id);
                            })) {
                     continue;
                 }
 
                 u_candidates.set(v);
-                weight += weightArray[id];
+                weight += weightArray_[id];
                 if (weight >= u_weight) {
                     break;
                 }
@@ -237,7 +230,7 @@ namespace subiso {
     // XXX: add comments
     void GraphMatch::build_init_CS(Graph &initCS,
                                    vector<unordered_map<int, int>> &uv2id,
-                                   unordered_map<int, pair<int, int>> &id2uv,
+                                   unordered_map<int, uint32_t> &id2uv,
                                    int rootCandidate) {
 
         vector<int> revTopOrder = queryDAG_.get_reversed_topo_order();
@@ -254,7 +247,8 @@ namespace subiso {
             for (auto v : all_candidate_sets[u]) {
                 initCS.add_node(initCSNodeIndex);
                 uv2id[u][v] = initCSNodeIndex;
-                id2uv[initCSNodeIndex] = make_pair(u, v);
+                // id2uv[initCSNodeIndex] = make_pair(u, v);
+                id2uv[initCSNodeIndex] = (u << 16) + v;
                 initCSNodeIndex++;
                 // Check each u's out edge
                 for (auto u_prime : queryDAG_.get_neighbors(u)) {
@@ -270,7 +264,7 @@ namespace subiso {
 
     bool GraphMatch::refine_CS_wrapper(Graph &CS,
                                        vector<unordered_map<int, int>> &uv2id,
-                                       unordered_map<int, pair<int, int>> &id2uv,
+                                       unordered_map<int, uint32_t> &id2uv,
                                        Graph &queryDAG,
                                        int reversed) {
         bool changed = false;
@@ -289,7 +283,7 @@ namespace subiso {
     // FIXME: add comments and rename variables based on paper/comment
     bool GraphMatch::refine_CS(Graph &CS,
                                vector<unordered_map<int, int>> &uv2id,
-                               unordered_map<int, pair<int, int>> &id2uv,
+                               unordered_map<int, uint32_t> &id2uv,
                                Graph &queryDAG) {
         unordered_set<int> filtered_nodes;
         // Iterate all nodes in reversed topo order
@@ -305,7 +299,8 @@ namespace subiso {
                 for (auto v_child : v_children) {
                     if (filtered_nodes.find(v_child) != filtered_nodes.end())
                         continue;
-                    int v_child_u = id2uv[v_child].first;
+                    // int v_child_u = id2uv[v_child].first;
+                    int v_child_u = id2uv[v_child] >> 16;
                     v_children_u.insert(v_child_u);
                 }
                 if (v_children_u.size() != queryDAG.get_neighbors(u).size()) {
@@ -319,7 +314,8 @@ namespace subiso {
         // For all the nodes in filtered_nodes, we clean CS, uv2id and id2uv
         CS.remove_nodes(filtered_nodes);
         for (auto id : filtered_nodes) {
-            int u = id2uv[id].first, v = id2uv[id].second;
+            // int u = id2uv[id].first, v = id2uv[id].second;
+            int u = id2uv[id] >> 16, v = id2uv[id] & 0xffff;
             id2uv.erase(id);
             uv2id[u].erase(v);
         }
@@ -331,7 +327,7 @@ namespace subiso {
                                         Graph &queryDAG,
                                         Graph &CS,
                                         vector<unordered_map<int, int>> &uv2id,
-                                        unordered_map<int, pair<int, int>> &id2uv) {
+                                        unordered_map<int, uint32_t> &id2uv) {
         // Iterate all nodes in queryDAG in reversed topo order.
         // Case 1: If a node u has a child u' that has in_degree > 1. All v in C(u) has w(u, v) = 1
         // Case 2: Else for each v in C(u), sum w(u', v') for each u' and v' in C(u') while v' is v's child.
@@ -354,7 +350,7 @@ namespace subiso {
 
                     unordered_set<int> id_children = CS.get_neighbors(id);
                     for (auto id_prime : id_children) {
-                        int u_prime = id2uv[id_prime].first;
+                        int u_prime = id2uv[id_prime] >> 16;
                         weights[u_prime] += weightArray[id_prime];
                     }
                     weightArray[id] = (*min_element(weights.begin(), weights.end(),
@@ -429,7 +425,8 @@ namespace subiso {
                 if (uv2id_[u].find(v) == uv2id_[u].end()) {
                     csG_.add_node(CSNodeIndex);
                     uv2id_[u][v] = CSNodeIndex;
-                    id2uv_[CSNodeIndex] = make_pair(u, v);
+                    // id2uv_[CSNodeIndex] = make_pair(u, v);
+                    id2uv_[CSNodeIndex] = (u << 16) + v;
                     CSNodeIndex++;
                 }
                 auto uv = uv2id_[u][v];
@@ -560,14 +557,7 @@ namespace subiso {
                 indegrees[nbr] -= 1;
             }
         } else {
-            auto u_candidates = get_next_node(M,
-                                              queryDAG_,
-                                              revQueryDAG_,
-                                              expandable_u,
-                                              csG_,
-                                              uv2id_,
-                                              id2uv_,
-                                              weightArray_);
+            auto u_candidates = get_next_node(M, expandable_u);
 
             int u = u_candidates.first;
             auto v_candidates = u_candidates.second;
@@ -785,7 +775,7 @@ namespace subiso {
         if (has_subgraph() == false)
             return {};
 
-        BiMap M(queryG_.num_nodes());
+        BiMap M(dataG_.num_nodes());
         vector<BiMap> allM_prime;
         vector<int> indegrees(queryG_.num_nodes(), 0);
 

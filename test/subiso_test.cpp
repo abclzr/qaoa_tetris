@@ -88,7 +88,7 @@ TEST_F(SubIsoTest, TriangleTest) {
 
     GraphMatch gm(queryG, dataG);
     vector<BiMap> result;
-    result = gm.subgraph_isomorphsim();
+    result = gm.subgraph_isomorphsim(1);
     cout << "subgraph isomorphsim finds " << result.size() << " results" << endl;
     for (int i = 0; i < result.size(); i++) {
         auto M = result[i];
