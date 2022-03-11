@@ -10,6 +10,7 @@ set(BIMAP__ENABLE_TESTS OFF)
 set(QAOAGRAPH_SOURCE_DIR "${PROJECT_SOURCE_DIR}/submodule/QAOAGraph")
 set(BIMAP_SOURCE_DIR "${PROJECT_SOURCE_DIR}/submodule/BiMap")
 
+add_compile_options(-march=native)
 
 if (NOT TARGET graph)
         add_subdirectory(${QAOAGRAPH_SOURCE_DIR} EXCLUDE_FROM_ALL)

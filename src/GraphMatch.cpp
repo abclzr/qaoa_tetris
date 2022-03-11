@@ -44,183 +44,59 @@ namespace subiso {
         return root_node;
     }
 
-    pair<int, vector<int>> GraphMatch::get_next_node1(BiMap &M,
-                                                           Graph &queryDAG,
-                                                           Graph &revQueryDAG,
-                                                           unordered_map<int, pair<int, unordered_set<int>>> &expandable_u,
-                                                           int lastExpandU,
-                                                           int prevExpandV,
-                                                           int curExpandV,
-                                                           Graph &CS,
-                                                           vector<unordered_map<int, int>> &uv2id,
-                                                           unordered_map<int, uint32_t> &id2uv,
-                                                           vector<int> &weightArray) {
-        // #ifndef NDEBUG
-        //         printf("\nget_next_node lastU %d (%d), prevV %d, curV %d; candidates: ", lastExpandU, M.getValueByKey(lastExpandU), prevExpandV, curExpandV);
-        //         for (auto it : expandable_u) {
-        //             printf("%d, ", it.first);
-        //         }
-        //         printf("\n");
-        // #endif
-        for (auto u_it = expandable_u.begin(); u_it != expandable_u.end(); ++u_it) {
-            auto u = u_it->first;
-            auto u_weight = &u_it->second.first;
-            auto u_candidates = &u_it->second.second;
-            // #ifndef NDEBUG
-            //             printf("\tBefore expnadable_u: u %d, u_weight %d, candidates: ", u, *u_weight);
-            //             for (auto vv : *u_candidates) {
-            //                 printf("%d, ", vv);
-            //             }
-            //             printf("\n");
-            // #endif
-            vector<int> u_parents_ids;
-            for (auto p : revQueryDAG.get_neighbors(u)) {
-                u_parents_ids.push_back(uv2id[p][M.getValueByKey(p)]);
-            }
-
-            if (queryDAG_.has_edge(lastExpandU, u)) {
-                if (prevExpandV == -1) {
-                    u_candidates->clear();
-                    *u_weight = 0;
-                    for (auto v_id : uv2id[u]) {
-                        // add
-                        auto v = v_id.first, id = v_id.second;
-                        // make sure all candidates are not mapped
-                        if (M.hasValue(v))
-                            continue;
-
-                        if (any_of(u_parents_ids.begin(), u_parents_ids.end(),
-                                   [&](auto id_v_p) {
-                                       return !CS.has_edge_quick(id_v_p, id);
-                                   })) {
-                            continue;
-                        }
-                        u_candidates->insert(v);
-                        *u_weight += weightArray[id];
-                    }
-                } else {
-                    auto prevExpandV_id = uv2id[lastExpandU][prevExpandV];
-                    auto curExpandV_id = uv2id[lastExpandU][curExpandV];
-                    for (auto v_id : uv2id[u]) {
-                        auto v = v_id.first, id = v_id.second;
-                        if (csG_.has_edge_quick(curExpandV_id, id) == false &&
-                            csG_.has_edge_quick(prevExpandV_id, id) == true) {
-                            // remove
-                            if (u_candidates->find(v) != u_candidates->end()) {
-                                u_candidates->erase(v);
-                                *u_weight -= weightArray[id];
-                            }
-                        } else if (csG_.has_edge_quick(curExpandV_id, id) == true &&
-                                   csG_.has_edge_quick(prevExpandV_id, id) == false) {
-                            // add
-                            if (!M.hasValue(v)) {
-                                if (all_of(u_parents_ids.begin(), u_parents_ids.end(),
-                                           [&](auto id_v_p) {
-                                               return CS.has_edge_quick(id_v_p, id);
-                                           })) {
-                                    u_candidates->insert(v);
-                                    *u_weight += weightArray[id];
-                                }
-                            }
-                        }
-                    }
-                }
-            } else {
-                // remove
-                if (u_candidates->find(curExpandV) != u_candidates->end()) {
-                    u_candidates->erase(curExpandV);
-                    *u_weight -= weightArray[uv2id[u][curExpandV]];
-                }
-                // add prevExpandV
-                if (!M.hasValue(prevExpandV) && uv2id[u].find(prevExpandV) != uv2id[u].end()) {
-                    auto prevExpandV_id = uv2id[u][prevExpandV];
-                    if (all_of(u_parents_ids.begin(), u_parents_ids.end(),
-                               [&](auto id_v_p) {
-                                   return CS.has_edge_quick(id_v_p, prevExpandV_id);
-                               })) {
-                        u_candidates->insert(prevExpandV);
-                        *u_weight += weightArray[prevExpandV_id];
-                    }
-                }
-            }
-            // #ifndef NDEBUG
-            //             printf("\tAfter expnadable_u: u %d, u_weight %d, candidates: ", u, *u_weight);
-            //             for (auto vv : *u_candidates) {
-            //                 printf("%d, ", vv);
-            //             }
-            //             printf("\n");
-            // #endif
+    void GraphMatch::update_candidates(BiMap &M, int u, int v, 
+                                        vector<uint32_t> &u_candidates) {
+        M.update(u, v);              
+        auto id = uv2id_[u][v];                      
+        for (int i = 0; i < queryG_.num_nodes(); ++i) {
+            if (M.hasKey(i)) continue;
+            // remove v from i's candidate
+            u_candidates[i] &= ~(1 << v);
+            // resolve query graph edge constraints
+            auto id_nbrs = id2uNbrs_[id][i];
+            // printf("i %d id_nbrs %u before %u --- ", i, id_nbrs, u_candidates[i]);
+            if (id_nbrs != 0) u_candidates[i] &= id_nbrs;
+            // printf("i %d id_nbrs %u after %u\n", i, id_nbrs, u_candidates[i]);
         }
-
-        int u_weight = INT_MAX;
-        int u_min = -1;
-        vector<int> u_min_candidates;
-        for (auto u_it : expandable_u) {
-            if (u_it.second.second.size() == 0)
-                return make_pair(-1, u_min_candidates);
-            auto u = u_it.first;
-            auto weight = u_it.second.first;
-            if (u_weight > weight) {
-                u_weight = weight;
-                u_min = u;
-            }
-        }
-        // #ifndef NDEBUG
-        //         printf("select u_min %d\n", u_min);
-        // #endif
-        for (auto v : expandable_u[u_min].second) {
-            u_min_candidates.push_back(v);
-        }
-
-        return make_pair(u_min, u_min_candidates);
     }
 
-    pair<int, bitset<32>> GraphMatch::get_next_node(BiMap &M, unordered_set<int> &expandable_u) {
+    void GraphMatch::reset_candidates(BiMap &M, int u,
+                                        vector<uint32_t> &u_candidates,
+                                        const vector<uint32_t> &old_u_candidates) {
+        M.eraseByKey(u);                                 
+        for (int i = 0; i < queryG_.num_nodes(); ++i) {
+            if (M.hasKey(i)) continue;
+            u_candidates[i] = old_u_candidates[i];
+        }
+    }
+
+    pair<int, uint32_t> GraphMatch::get_next_node(BiMap &M, 
+                                                    unordered_set<int> &expandable_u,
+                                                    vector<uint32_t> &u_candidates) {
 
         // looking for candidates for each expandable node
-        int u_weight = INT_MAX;
+        int u_min_weight = INT_MAX;
         int u_min = -1;
-        bitset<32> u_min_candidates;
+        uint32_t u_min_candidates = 0;
 
         for (auto u : expandable_u) {
             // calculating weight for each u in expandable_u
             // using weight to find a u with min weight from expandable_u.
             int weight = 0;
-            bitset<32> u_candidates;
-            vector<int> u_parents_ids;
-            for (auto p : revQueryDAG_.get_neighbors(u)) {
-                u_parents_ids.push_back(uv2id_[p][M.getValueByKey(p)]);
-            }
-
-            // get candidates of u
-            for (auto v_id : uv2id_[u]) {
-                auto v = v_id.first, id = v_id.second;
-                // make sure all candidates are not mapped
-                if (M.hasValue(v))
-                    continue;
-
-                if (any_of(u_parents_ids.begin(), u_parents_ids.end(),
-                           [&](auto id_v_p) {
-                               return !csG_.has_edge_quick(id_v_p, id);
-                           })) {
-                    continue;
-                }
-
-                u_candidates.set(v);
-                weight += weightArray_[id];
-                if (weight >= u_weight) {
+            uint32_t candidates = u_candidates[u];
+            while (candidates != 0) {
+                int v = 31 - __builtin_clz(candidates);
+                candidates ^= (1 << v);
+                weight += weightArray_[uv2id_[u][v]];
+                if (weight >= u_min_weight) {
                     break;
                 }
             }
 
-            if (u_candidates.count() == 0) {
-                return make_pair(-1, u_candidates);
-            }
-
-            if (u_weight > weight) {
-                u_weight = weight;
+            if (u_min_weight > weight) {
+                u_min_weight = weight;
                 u_min = u;
-                u_min_candidates = u_candidates;
+                u_min_candidates = u_candidates[u];
             }
         }
 
@@ -397,6 +273,36 @@ namespace subiso {
             }
         }
 
+        // for (int i = 0; i < queryDAG_.num_nodes(); ++i) {
+        //     printf("u %d: ", i);
+        //     for (auto u : uv2id_[i]) {
+        //         printf("[%d, %d]; ", u.first, u.second);
+        //     }
+        //     printf("\n");
+        // }
+        // csG_.print_adjList();
+
+        // build id2uNbrs_
+        id2uNbrs_ = vector<vector<uint32_t>>(csG_.num_nodes(), vector<uint32_t>(dataG_.num_nodes(), 0));
+        for (auto edge : csG_.get_edges()) {
+            auto id1 = edge[0], id2 = edge[1];
+            int u2 = id2uv_[id2] >> 16;
+            int v2 = id2uv_[id2] & 0xffff;
+            id2uNbrs_[id1][u2] |= (1 << v2);
+        }
+        // for (int i = 0; i < csG_.num_nodes(); ++i) {
+        //     for (int j = 0; j < queryG_.num_nodes(); ++j) {
+        //         printf("id: %d u: %d str: %u | ",i ,j, id2uNbrs_[i][j]);
+        //         auto candidates_ = id2uNbrs_[i][j];
+        //         while (candidates_ != 0) {
+        //             int v = 31 - __builtin_clz(candidates_);
+        //             candidates_ ^= (1 << v);
+        //             printf("%d, ", v);
+        //         }
+        //         printf("\n");
+        //     }
+        // }
+
 #ifndef NDEBUG
         start = high_resolution_clock::now();
 #endif
@@ -484,20 +390,20 @@ namespace subiso {
     }
 
     template<typename T>
-    bool combo_check(const T& c, int k, const vector<bitset<32>> &candidates) {
+    bool combo_check(const T& c, int k, const vector<uint32_t> &candidates) {
         int n = c.size();
         int combo = (1 << k) - 1;       // k bit sets
         while (combo < 1<<n) {
             
             // checking part
-            bitset<32> bs;
+            uint32_t bs = 0;
             for (int i = 0; i < n; ++i) {
                 if ((combo >> i) & 1)
                     // cout << c[i] << ' ';
                     bs |= candidates[c[i]];
             }
             // cout << endl;
-            if (bs.count() < k) {
+            if (__builtin_popcount(bs) < k) {
                 return false;
             }
 
@@ -513,11 +419,13 @@ namespace subiso {
 
     bool GraphMatch::backtrack(BiMap &M,
                                vector<BiMap> &allM_prime,
-                               unordered_set<int> expandable_u,
+                               unordered_set<int> &expandable_u,
+                               vector<uint32_t> &u_candidates,
                                vector<int> &indegrees,
                                int count) {
         bt_count += 1;
 
+        // printf("expandable: ");
         // for (auto it : expandable_u) {
         //     printf("%d ", it);
         // }
@@ -543,12 +451,28 @@ namespace subiso {
             // printf("root: %d vs: ", u);
             // for (auto vi : C_u) {printf("%d ", vi.first);}
             // printf("\n");
+            // for (int i = 0; i < u_candidates.size(); ++i) {
+            //     printf("node %d candidates str: %u | ", i, u_candidates[i]);
+            //     auto candidates_ = u_candidates[i];
+            //     while (candidates_ != 0) {
+            //         int v = 31 - __builtin_clz(candidates_);
+            //         candidates_ ^= (1 << v);
+            //         printf("%d, ", v);
+            //     }
+            //     printf("\n");
+            // }
+
             for (auto vi : C_u) {
                 int v = vi.first;
-                M.update(u, v);
-                if (backtrack(M, allM_prime, expandable_u, indegrees, count) == false)
+                // M.update(u, v);
+                auto old_u_candidates = u_candidates;
+                update_candidates(M, u, v, u_candidates);
+
+                if (backtrack(M, allM_prime, expandable_u, u_candidates, indegrees, count) == false)
                     return false;
-                M.eraseByKey(u);
+                
+                // M.eraseByKey(u);
+                reset_candidates(M, u, u_candidates, old_u_candidates);
             }
             for (auto nbr : queryDAG_.get_neighbors(u)) {
                 if (indegrees[nbr] == queryDAG_.in_degree(nbr)) {
@@ -557,70 +481,23 @@ namespace subiso {
                 indegrees[nbr] -= 1;
             }
         } else {
-            auto u_candidates = get_next_node(M, expandable_u);
+            auto next_node = get_next_node(M, expandable_u, u_candidates);
 
-            int u = u_candidates.first;
-            auto v_candidates = u_candidates.second;
-            // printf("select %d\ncandidates: ", u);
-            // for (auto v : v_candidates) {
+            int u = next_node.first;
+            auto candidates = next_node.second;
+
+            // printf("select: %d candidates str: %u | ", u, candidates);
+            // auto candidates_ = candidates;
+            // while (candidates_ != 0) {
+            //     int v = 31 - __builtin_clz(candidates_);
+            //     candidates_ ^= (1 << v);
             //     printf("%d, ", v);
             // }
             // printf("\n");
-            if (u != -1 && v_candidates.count() > 0) {
+
+            if (u != -1 && candidates != 0) {
                 expandable_u.erase(u);
-/*
-                // Here we get candidates for all other nodes
-                vector<bitset<32>> candidates(queryG_.num_nodes());
-                vector<int> candidates_ids;
-                for (int uu = 0; uu < queryG_.num_nodes(); ++uu) {
-                    if (M.hasKey(uu)) continue;
-                    if (expandable_u.find(uu) != expandable_u.end()) continue;
-
-                    vector<int> u_parents_ids;
-                    for (auto p : revQueryDAG_.get_neighbors(uu)) {
-                        if (!M.hasKey(p)) continue;
-                        u_parents_ids.push_back(uv2id_[p][M.getValueByKey(p)]);
-                    }
-
-                    // get candidates of uu
-                    for (auto v_id : uv2id_[uu]) {
-                        auto v = v_id.first, id = v_id.second;
-                        // make sure all candidates are not mapped
-                        if (M.hasValue(v)) continue;
-                        if (any_of(u_parents_ids.begin(), u_parents_ids.end(),
-                           [&](auto id_v_p) {
-                               return !csG_.has_edge_quick(id_v_p, id);
-                           })) {
-                            continue;
-                        }
-                        candidates[uu].set(v);
-                    }
-
-                    if (candidates[uu].count() == 0) { 
-                        // printf("quit\n"); 
-                        // printf("=====\n");
-                        return true; 
-                    } else {
-                        candidates_ids.push_back(uu);
-                    }
-                }
-                // for (auto id : candidates_ids) {
-                //     cout << id << " " << candidates[id] << endl;
-                // }
-                // (Hall’s Marriage Theorem). Let G = (L, R, E) be a bipartite graph with |L| = |R|.
-                // Suppose that for every S ⊆ L, we have |Γ(S)| ≥ |S|. Then G has a perfect matching.
-                int maxK = 3;
-                maxK = maxK <= candidates_ids.size() ? maxK : candidates_ids.size();
-                for (int k = 1; k <= maxK; ++k) {
-                    // select k non-empty candidates
-                    if (combo_check(candidates_ids, k, candidates) == false) {
-                        // printf("quit\n"); 
-                        // printf("=====\n");
-                        return true;
-                    }
-                }
-                // printf("=====\n");
-*/                
+            
                 // update in_degree & expandable_u
                 for (auto nbr : queryDAG_.get_neighbors(u)) {
                     indegrees[nbr] += 1;
@@ -629,134 +506,68 @@ namespace subiso {
                     }
                 }
 
-                // random_shuffle ( u_candidates.second.begin(), u_candidates.second.end() );
-
-                // for (auto v : v_candidates) {
-                for (auto v = v_candidates._Find_first(); v < v_candidates.size(); v = v_candidates._Find_next(v)) {
+                while (candidates != 0) {
+                    int v = 31 - __builtin_clz(candidates);
+                    candidates ^= (1 << v);
                     // printf("v %d\n", v);
                     if (M.hasValue(v) == false) {
-                        M.update(u, v);
-                        if (backtrack(M, allM_prime, expandable_u, indegrees, count) == false)
+                        // M.update(u, v);
+                        auto old_u_candidates = u_candidates;
+                        update_candidates(M, u, v, u_candidates);
+                        // for (int i = 0; i < u_candidates.size(); ++i) {
+                        //     printf("node %d candidates str: %u | ", i, u_candidates[i]);
+                        //     auto candidates_ = u_candidates[i];
+                        //     while (candidates_ != 0) {
+                        //         int v = 31 - __builtin_clz(candidates_);
+                        //         candidates_ ^= (1 << v);
+                        //         printf("%d, ", v);
+                        //     }
+                        //     printf("\n");
+                        // }
+                        bool earlyTerminateFlag = false;
+                        uint32_t check_ones = 0;
+                        // vector<int> candidates_ids;
+                        for (int uu = 0; uu < queryG_.num_nodes(); ++uu) {
+                            if (M.hasKey(uu)) continue;
+                            // if (expandable_u.find(uu) != expandable_u.end()) continue;
+                            if (u_candidates[uu] == 0) {
+                                earlyTerminateFlag = true;
+                                break;
+                            }
+                            else if (__builtin_popcount(u_candidates[uu]) == 1) {
+                                int k = 31 - __builtin_clz(u_candidates[uu]);
+                                if (((check_ones & (1 << k)) >> k)) { // k-th bit is one
+                                    earlyTerminateFlag = true;
+                                    break;
+                                } else {
+                                    check_ones |= (1 << k);
+                                }
+                            } 
+                            // else {
+                            //     candidates_ids.push_back(uu);
+                            // }
+                        }
+                        // if (earlyTerminateFlag == false) {
+                        //     // (Hall’s Marriage Theorem). Let G = (L, R, E) be a bipartite graph with |L| = |R|.
+                        //     // Suppose that for every S ⊆ L, we have |Γ(S)| ≥ |S|. Then G has a perfect matching.
+                        //     int maxK = maxK_ <= candidates_ids.size() ? maxK_ : candidates_ids.size();
+                        //     for (int k = 2; k <= maxK; ++k) {
+                        //         // select k non-empty candidates
+                        //         if (combo_check(candidates_ids, k, u_candidates) == false) {
+                        //             earlyTerminateFlag = true;
+                        //             break;
+                        //         }
+                        //     }
+                        // }
+
+                        if (earlyTerminateFlag == false && backtrack(M, allM_prime, expandable_u, u_candidates, indegrees, count) == false)
                             return false;
-                        M.eraseByKey(u);
+
+                        // M.eraseByKey(u);
+                        reset_candidates(M, u, u_candidates, old_u_candidates);
                     }
                 }
-
-                for (auto nbr : queryDAG_.get_neighbors(u)) {
-                    if (indegrees[nbr] == queryDAG_.in_degree(nbr)) {
-                        expandable_u.erase(nbr);
-                    }
-                    indegrees[nbr] -= 1;
-                }
-            }
-        }
-        return true;
-    }
-
-    bool GraphMatch::backtrack1(BiMap &M,
-                                     vector<BiMap> &allM_prime,
-                                     unordered_map<int, pair<int, unordered_set<int>>> &expandable_u,
-                                     int lastExpandU,
-                                     int prevExpandV,
-                                     int curExpandV,
-                                     unordered_map<int, int> indegrees,
-                                     int count) {
-        bt_count += 1;
-
-        if (M.size() == queryG_.num_nodes()) {
-            allM_prime.emplace_back(M);
-            return allM_prime.size() < count;
-        } else if (M.size() == 0) {
-            int u = rootIndex_;
-            for (auto nbr : queryDAG_.get_neighbors(u)) {
-                indegrees[nbr] += 1;
-                if (indegrees[nbr] == queryDAG_.in_degree(nbr)) {
-                    expandable_u[nbr] = make_pair(0, unordered_set<int>());
-                }
-            }
-            for (int i = 0; i < queryDAG_.num_nodes(); ++i) {
-                if (queryDAG_.degree(i) == 0) {
-                    expandable_u[i] = make_pair(0, unordered_set<int>());
-                }
-            }
-            auto C_u = uv2id_[u];
-            lastExpandU = u;
-            prevExpandV = -1;
-            // printf("root: %d vs: ", u);
-            // for (auto vi : C_u) {
-            //     printf("%d ", vi.first);
-            // }
-            // printf("\n");
-            for (auto vi : C_u) {
-                int v = vi.first;
-                curExpandV = v;
-                M.update(u, v);
-                if (backtrack1(M,
-                                    allM_prime,
-                                    expandable_u,
-                                    lastExpandU,
-                                    prevExpandV,
-                                    curExpandV,
-                                    indegrees,
-                                    count) == false)
-                    return false;
-                M.eraseByKey(u);
-                prevExpandV = v;
-            }
-            for (auto nbr : queryDAG_.get_neighbors(u)) {
-                if (indegrees[nbr] == queryDAG_.in_degree(nbr)) {
-                    expandable_u.erase(nbr);
-                }
-                indegrees[nbr] -= 1;
-            }
-        } else {
-            auto u_candidates = get_next_node1(M,
-                                                    queryDAG_,
-                                                    revQueryDAG_,
-                                                    expandable_u,
-                                                    lastExpandU,
-                                                    prevExpandV,
-                                                    curExpandV,
-                                                    csG_,
-                                                    uv2id_,
-                                                    id2uv_,
-                                                    weightArray_);
-
-            auto expandable_u_ = expandable_u;
-
-            int u = u_candidates.first;
-            auto v_candidates = u_candidates.second;
-            if (u != -1 && v_candidates.size() > 0) {
-                expandable_u.erase(u);
-
-                // update in_degree & expandable_u
-                for (auto nbr : queryDAG_.get_neighbors(u)) {
-                    indegrees[nbr] += 1;
-                    if (indegrees[nbr] == queryDAG_.in_degree(nbr)) {
-                        expandable_u[nbr] = make_pair(0, unordered_set<int>());
-                    }
-                }
-
-                // random_shuffle ( u_candidates.second.begin(), u_candidates.second.end() );
-                lastExpandU = u;
-                prevExpandV = -1;
-                for (auto v : u_candidates.second) {
-                    curExpandV = v;
-                    if (M.hasValue(v) == false) {
-                        M.update(u, v);
-                        if (backtrack1(M,
-                                            allM_prime,
-                                            expandable_u,
-                                            lastExpandU,
-                                            prevExpandV,
-                                            curExpandV,
-                                            indegrees,
-                                            count) == false)
-                            return false;
-                        M.eraseByKey(u);
-                        prevExpandV = v;
-                    }
-                }
+                
 
                 for (auto nbr : queryDAG_.get_neighbors(u)) {
                     if (indegrees[nbr] == queryDAG_.in_degree(nbr)) {
@@ -765,11 +576,13 @@ namespace subiso {
                     indegrees[nbr] -= 1;
                 }
 
-                expandable_u = expandable_u_;
+                expandable_u.insert(u);
+
             }
         }
         return true;
     }
+
 
     vector<BiMap> GraphMatch::subgraph_isomorphsim(int count) {
         if (has_subgraph() == false)
@@ -780,7 +593,14 @@ namespace subiso {
         vector<int> indegrees(queryG_.num_nodes(), 0);
 
         unordered_set<int> expandable_u;
-        backtrack(M, allM_prime, expandable_u, indegrees, count);
+        vector<uint32_t> u_candidates(queryG_.num_nodes(), 0);
+        for (int i = 0; i < queryG_.num_nodes(); ++i) {
+            for (auto v_id : uv2id_[i]) {
+                int v = v_id.first;
+                u_candidates[i] |= (1 << v);
+            }
+        }
+        backtrack(M, allM_prime, expandable_u, u_candidates, indegrees, count);
         // unordered_map<int, pair<int, unordered_set<int>>> expandable_u;
         // backtrack1(M, allM_prime, expandable_u, -1, -1, -1, indegrees, count);
 

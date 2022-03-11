@@ -61,9 +61,9 @@ Graph QAOALinearPattern(int n, int cycle=INT_MAX) {
 
 int main(int argc, char *argv[]) {
 
-    if (argc != 4) {
-        cerr << "./subiso [Query Graph] [QAOA Pattern Size] [direction]\n";
-        cerr << "E.g. ./subiso ../Benchmarks/others/16_2_0.txt 16 0\n";
+    if (argc != 5 && argc != 4) {
+        cerr << "./subiso [Query Graph] [QAOA Pattern Size] [direction] [maxK = 3]\n";
+        cerr << "E.g. ./subiso ../Benchmarks/others/16_2_0.txt 16 0 3\n";
         return -1;
     }
 
@@ -78,6 +78,7 @@ int main(int argc, char *argv[]) {
 
     int npattern = atoi(argv[2]);
     int direction = atoi(argv[3]);
+    int maxK = argc == 4 ? 3 : atoi(argv[4]);
 
     vector<BiMap> result;
     int iter, iter_start, iter_end, iter_delta;
@@ -92,6 +93,7 @@ int main(int argc, char *argv[]) {
     }
     
     // for (int i = 0; i < npattern; i++) {
+    int total_bt_count = 0;
     std::chrono::_V2::system_clock::time_point total_start, total_stop;
     total_start = high_resolution_clock::now();
 #ifndef NDEBUG
@@ -102,7 +104,7 @@ int main(int argc, char *argv[]) {
     
     Graph dataGraph = QAOALinearPattern(npattern, iter_start); // Pattern graph
     dataGraph.generate_edge_checker();
-    GraphMatch gm(queryGraph, dataGraph);
+    GraphMatch gm(queryGraph, dataGraph, maxK);
     
 #ifndef NDEBUG
     stop = high_resolution_clock::now();
@@ -135,7 +137,7 @@ int main(int argc, char *argv[]) {
             start = high_resolution_clock::now();
 #endif
             // gm.update_data_G(dataGraph);
-            gm = GraphMatch(queryGraph, dataGraph, root, rootCandidate);
+            gm = GraphMatch(queryGraph, dataGraph, maxK, root, rootCandidate);
             if (gm.has_subgraph() == false) break;
 #ifndef NDEBUG
             stop = high_resolution_clock::now();
@@ -156,6 +158,7 @@ int main(int argc, char *argv[]) {
             printf("\troot %d; root candidate: %d; ", root, rootCandidate);
             printf("\texplore elapsed: %ld ms; bt count: %d; root index: %d\n", subiso_time, gm.bt_count, gm.get_root_index());
 #endif
+            total_bt_count += gm.bt_count;
             if (direction == 0 && result.size() > 0) {
                 // result[0].print();
                 break;
@@ -178,6 +181,7 @@ int main(int argc, char *argv[]) {
     total_stop = high_resolution_clock::now();
     auto total_duration = duration_cast<milliseconds>(total_stop - total_start).count();
     printf("%.3f,%d", total_duration / 1000.0, iter);
+    // printf("%.3f,%d,%d", total_duration / 1000.0, iter,total_bt_count);
     // printf("%d:%.3fs,%d\n", i, total_duration / 1000.0, iter);
     // }
 #ifndef NDEBUG

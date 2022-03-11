@@ -79,7 +79,7 @@ TEST_F(SubIsoTest, TriangleTest) {
         FAIL();
     }
     Graph dataG;
-    string dataGraphPath = "../../test/graph/fig1d.txt";
+    string dataGraphPath = "../../test/graph/clique4.txt";
     ifstream dataGraphFile(dataGraphPath);
     if (!dataGraphFile.is_open() || !dataG.load_from_file(dataGraphFile)) {
         cerr << "Cannot load query graph file ../../test/graph/fig1d.txt.\n";

@@ -41,7 +41,10 @@ namespace subiso {
         Graph csG_;
         vector<unordered_map<int, int>> uv2id_;
         unordered_map<int, uint32_t> id2uv_;
+        vector<vector<uint32_t>> id2uNbrs_;
         vector<int> weightArray_;
+
+        int maxK_ = 3;
 
         bool refine_CS(Graph &initCS,
                        vector<unordered_map<int, int>> &uv2id,
@@ -60,7 +63,7 @@ namespace subiso {
 
         bool early_check();
 
-        GraphMatch(Graph queryG, Graph dataG, int rootIndex = -1, int rootCandidate = -1) : queryG_(queryG), dataG_(dataG) {
+        GraphMatch(Graph queryG, Graph dataG, int maxK = 3, int rootIndex = -1, int rootCandidate = -1) : queryG_(queryG), dataG_(dataG), maxK_(maxK) {
             if (!early_check()) {
                 hasSubgraph_ = false;
                 return;
@@ -94,20 +97,19 @@ namespace subiso {
 
         bool update_data_G(Graph dataG);
 
+        void update_candidates(BiMap &M, int u, int v, 
+                                vector<uint32_t> &u_candidates);
+
+        void reset_candidates(BiMap &M, int u, 
+                                vector<uint32_t> &u_candidates,
+                                const vector<uint32_t> &old_u_candidates);
+
         bool backtrack(BiMap &M,
                        vector<BiMap> &allM,
-                       unordered_set<int> expandable_u,
+                       unordered_set<int> &expandable_u,
+                       vector<uint32_t> &u_candidates,
                        vector<int> &indegrees,
                        int count = INT_MAX);
-
-        bool backtrack1(BiMap &M,
-                             vector<BiMap> &allM,
-                             unordered_map<int, pair<int, unordered_set<int>>> &expandable_u,
-                             int lastExpandU,
-                             int prevExpandV,
-                             int curExpandV,
-                             unordered_map<int, int> indegrees,
-                             int count = INT_MAX);
 
         // XXX: Now a vector of int pairs is used to represent the matching from query to data.
         // It suppose to return an iterator(?) for practical use.
@@ -117,19 +119,8 @@ namespace subiso {
         // but for testing issue, they are public now check the following link to improve.
         // https://stackoverflow.com/questions/47354280/what-is-the-best-way-of-testing-private-methods-with-googletest
 
-        pair<int, bitset<32>> get_next_node(BiMap &M, unordered_set<int> &expandable_u);
-
-        pair<int, vector<int>> get_next_node1(BiMap &M,
-                                                   Graph &queryDAG,
-                                                   Graph &revQueryDAG,
-                                                   unordered_map<int, pair<int, unordered_set<int>>> &expandable_u,
-                                                   int lastExpandU,
-                                                   int prevExpandV,
-                                                   int curExpandV,
-                                                   Graph &CS,
-                                                   vector<unordered_map<int, int>> &uv2id,
-                                                   unordered_map<int, uint32_t> &id2uv,
-                                                   vector<int> &weightArray);
+        pair<int, uint32_t> get_next_node(BiMap &M, unordered_set<int> &expandable_u,
+                                                    vector<uint32_t> &u_candidates);
 
         void update_init_CS();
 
