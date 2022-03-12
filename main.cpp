@@ -79,6 +79,7 @@ int main(int argc, char *argv[]) {
     int npattern = atoi(argv[2]);
     int direction = atoi(argv[3]);
     int maxK = argc == 4 ? 3 : atoi(argv[4]);
+    maxK = maxK < 3 ? 3 : maxK;
 
     vector<BiMap> result;
     int iter, iter_start, iter_end, iter_delta;
@@ -180,8 +181,8 @@ int main(int argc, char *argv[]) {
 
     total_stop = high_resolution_clock::now();
     auto total_duration = duration_cast<milliseconds>(total_stop - total_start).count();
-    printf("%.3f,%d", total_duration / 1000.0, iter);
-    // printf("%.3f,%d,%d", total_duration / 1000.0, iter,total_bt_count);
+    // printf("%.3f,%d", total_duration / 1000.0, iter);
+    printf("%.3f,%d,%d", total_duration / 1000.0, iter,total_bt_count);
     // printf("%d:%.3fs,%d\n", i, total_duration / 1000.0, iter);
     // }
 #ifndef NDEBUG

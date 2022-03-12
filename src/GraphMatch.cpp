@@ -390,7 +390,7 @@ namespace subiso {
     }
 
     template<typename T>
-    bool combo_check(const T& c, int k, const vector<uint32_t> &candidates) {
+    inline bool combo_check(const T& c, int k, const vector<uint32_t> &candidates) {
         int n = c.size();
         int combo = (1 << k) - 1;       // k bit sets
         while (combo < 1<<n) {
@@ -415,6 +415,47 @@ namespace subiso {
             combo |= y;
         }
         return true;
+    }
+
+    inline bool early_backtrack_termination_check(BiMap &M, vector<uint32_t> &u_candidates, int maxK) {
+        uint32_t check_ones = 0;
+        vector<int> candidates_ids;
+        for (int uu = 0; uu < u_candidates.size(); ++uu) {
+            if (M.hasKey(uu)) continue;
+            // if (expandable_u.find(uu) != expandable_u.end()) continue;
+            if (u_candidates[uu] == 0) {
+                return true;
+            }
+            else if (__builtin_popcount(u_candidates[uu]) == 1) {
+                int k = 31 - __builtin_clz(u_candidates[uu]);
+                if (((check_ones & (1 << k)) >> k)) { // k-th bit is one
+                    return true;
+                } else {
+                    check_ones |= (1 << k);
+                    candidates_ids.push_back(uu);
+                }
+            } 
+            else {
+                if ((u_candidates[uu] & (~check_ones)) == 0) {
+                    return true;
+                }
+                if (__builtin_popcount(u_candidates[uu]) < maxK) {
+                    candidates_ids.push_back(uu);
+                }
+            }
+        }
+
+        // (Hall’s Marriage Theorem). Let G = (L, R, E) be a bipartite graph with |L| = |R|.
+        // Suppose that for every S ⊆ L, we have |Γ(S)| ≥ |S|. Then G has a perfect matching.
+        maxK = maxK <= candidates_ids.size() ? maxK : candidates_ids.size();
+        for (int k = 3; k <= maxK; ++k) {
+            // select k non-empty candidates
+            if (combo_check(candidates_ids, k, u_candidates) == false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     bool GraphMatch::backtrack(BiMap &M,
@@ -524,43 +565,9 @@ namespace subiso {
                         //     }
                         //     printf("\n");
                         // }
-                        bool earlyTerminateFlag = false;
-                        uint32_t check_ones = 0;
-                        // vector<int> candidates_ids;
-                        for (int uu = 0; uu < queryG_.num_nodes(); ++uu) {
-                            if (M.hasKey(uu)) continue;
-                            // if (expandable_u.find(uu) != expandable_u.end()) continue;
-                            if (u_candidates[uu] == 0) {
-                                earlyTerminateFlag = true;
-                                break;
-                            }
-                            else if (__builtin_popcount(u_candidates[uu]) == 1) {
-                                int k = 31 - __builtin_clz(u_candidates[uu]);
-                                if (((check_ones & (1 << k)) >> k)) { // k-th bit is one
-                                    earlyTerminateFlag = true;
-                                    break;
-                                } else {
-                                    check_ones |= (1 << k);
-                                }
-                            } 
-                            // else {
-                            //     candidates_ids.push_back(uu);
-                            // }
-                        }
-                        // if (earlyTerminateFlag == false) {
-                        //     // (Hall’s Marriage Theorem). Let G = (L, R, E) be a bipartite graph with |L| = |R|.
-                        //     // Suppose that for every S ⊆ L, we have |Γ(S)| ≥ |S|. Then G has a perfect matching.
-                        //     int maxK = maxK_ <= candidates_ids.size() ? maxK_ : candidates_ids.size();
-                        //     for (int k = 2; k <= maxK; ++k) {
-                        //         // select k non-empty candidates
-                        //         if (combo_check(candidates_ids, k, u_candidates) == false) {
-                        //             earlyTerminateFlag = true;
-                        //             break;
-                        //         }
-                        //     }
-                        // }
 
-                        if (earlyTerminateFlag == false && backtrack(M, allM_prime, expandable_u, u_candidates, indegrees, count) == false)
+                        if (early_backtrack_termination_check(M, u_candidates, maxK_) == false && 
+                            backtrack(M, allM_prime, expandable_u, u_candidates, indegrees, count) == false)
                             return false;
 
                         // M.eraseByKey(u);
