@@ -79,7 +79,7 @@ int main(int argc, char *argv[]) {
     int npattern = atoi(argv[2]);
     int direction = atoi(argv[3]);
     int maxK = argc == 4 ? 3 : atoi(argv[4]);
-    maxK = maxK < 3 ? 3 : maxK;
+    // maxK = maxK < 3 ? 3 : maxK;
 
     vector<BiMap> result;
     int iter, iter_start, iter_end, iter_delta;

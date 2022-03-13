@@ -389,18 +389,23 @@ namespace subiso {
 #endif
     }
 
-    template<typename T>
-    inline bool combo_check(const T& c, int k, const vector<uint32_t> &candidates) {
-        int n = c.size();
+    
+    // inline bool combo_check(const T& c, int k, const vector<uint32_t> &candidates) {
+    inline bool combo_check(uint32_t candidates_ids, 
+                            int k,
+                            const vector<uint32_t> &candidates) {
+        int n = __builtin_popcount(candidates_ids);;
         int combo = (1 << k) - 1;       // k bit sets
         while (combo < 1<<n) {
-            
             // checking part
             uint32_t bs = 0;
-            for (int i = 0; i < n; ++i) {
+            auto candidates_ids_ = candidates_ids;
+            for (int i = 0; i < n && __builtin_popcount(bs) < k; ++i) {
+                int v = 31 - __builtin_clz(candidates_ids_);
+                candidates_ids_ ^= (1 << v);
                 if ((combo >> i) & 1)
                     // cout << c[i] << ' ';
-                    bs |= candidates[c[i]];
+                    bs |= candidates[v];
             }
             // cout << endl;
             if (__builtin_popcount(bs) < k) {
@@ -418,41 +423,48 @@ namespace subiso {
     }
 
     inline bool early_backtrack_termination_check(BiMap &M, vector<uint32_t> &u_candidates, int maxK) {
+        if (maxK == 0) return false;
         uint32_t check_ones = 0;
-        vector<int> candidates_ids;
+        vector<uint32_t> candidates_ids(max(3, maxK) + 1, 0);
         for (int uu = 0; uu < u_candidates.size(); ++uu) {
             if (M.hasKey(uu)) continue;
             // if (expandable_u.find(uu) != expandable_u.end()) continue;
+            int nnz = __builtin_popcount(u_candidates[uu]);
             if (u_candidates[uu] == 0) {
                 return true;
             }
-            else if (__builtin_popcount(u_candidates[uu]) == 1) {
+            else if (maxK >= 1 && nnz == 1) {
                 int k = 31 - __builtin_clz(u_candidates[uu]);
                 if (((check_ones & (1 << k)) >> k)) { // k-th bit is one
                     return true;
                 } else {
                     check_ones |= (1 << k);
-                    candidates_ids.push_back(uu);
+                    // candidates_ids.push_back(uu);
+                    candidates_ids[3] |= (1 << uu);
                 }
             } 
             else {
-                if ((u_candidates[uu] & (~check_ones)) == 0) {
+                if (maxK >= 2 && (u_candidates[uu] & (~check_ones)) == 0) {
                     return true;
                 }
-                if (__builtin_popcount(u_candidates[uu]) < maxK) {
-                    candidates_ids.push_back(uu);
+                if (nnz < maxK) {
+                    // candidates_ids.push_back(uu);
+                    candidates_ids[max(3, nnz)] |= (1 << uu);
                 }
             }
         }
 
         // (Hall’s Marriage Theorem). Let G = (L, R, E) be a bipartite graph with |L| = |R|.
         // Suppose that for every S ⊆ L, we have |Γ(S)| ≥ |S|. Then G has a perfect matching.
-        maxK = maxK <= candidates_ids.size() ? maxK : candidates_ids.size();
-        for (int k = 3; k <= maxK; ++k) {
-            // select k non-empty candidates
-            if (combo_check(candidates_ids, k, u_candidates) == false) {
+        // maxK = maxK <= candidates_ids.size() ? maxK : candidates_ids.size();
+        int k = 3;
+        uint32_t cur_candidates_ids = 0;
+        while (k <= maxK) {
+            cur_candidates_ids |= candidates_ids[k];
+            if (combo_check(cur_candidates_ids, k, u_candidates) == false) {
                 return true;
             }
+            k++;
         }
 
         return false;
@@ -566,7 +578,7 @@ namespace subiso {
                         //     printf("\n");
                         // }
 
-                        if (early_backtrack_termination_check(M, u_candidates, maxK_) == false && 
+                        if ((early_backtrack_termination_check(M, u_candidates, maxK_) == false) && 
                             backtrack(M, allM_prime, expandable_u, u_candidates, indegrees, count) == false)
                             return false;
 
