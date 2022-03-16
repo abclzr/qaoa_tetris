@@ -106,7 +106,7 @@ namespace subiso {
 
         bool backtrack(BiMap &M,
                        vector<BiMap> &allM,
-                       unordered_set<int> &expandable_u,
+                       unordered_set<int> expandable_u,
                        vector<uint32_t> &u_candidates,
                        vector<int> &indegrees,
                        int count = INT_MAX);

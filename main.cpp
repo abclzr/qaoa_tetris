@@ -87,10 +87,16 @@ int main(int argc, char *argv[]) {
         iter_start = npattern % 2 == 0 ? 1 : 2;
         iter_end = npattern + 1;
         iter_delta = 1;
-    } else {
+        iter = iter_start + 1;
+    } else if (direction == 1) {
         iter_start = npattern;
         iter_end = 0;
-        iter_delta = -1;        
+        iter_delta = -1;      
+        iter = iter_start + 1;  
+    } else if (direction == 2) {
+        iter_start = npattern % 2 == 0 ? 1 : 2;
+        iter_end = npattern + 1;
+        iter = (iter_start + iter_end) / 2;
     }
     
     // for (int i = 0; i < npattern; i++) {
@@ -113,7 +119,8 @@ int main(int argc, char *argv[]) {
     printf("init GraphMatch class: %ld ms\n", gm_init_time);
 #endif
     
-    for (iter = iter_start + 1; iter != iter_end; iter += iter_delta) {
+    // for (iter = iter_start + 1; iter != iter_end; iter += iter_delta) {
+    while (iter < iter_end) {
 #ifndef NDEBUG
         printf("iter: %d; ", iter);
         fflush(stdout);
@@ -132,7 +139,7 @@ int main(int argc, char *argv[]) {
         auto rootCandidates = queryGraph.get_candidate_set(root, dataGraph);
 
         rootCandidates = {-1};
-
+        bool successFlag = false;
         for (auto rootCandidate : rootCandidates) {
 #ifndef NDEBUG
             start = high_resolution_clock::now();
@@ -156,25 +163,37 @@ int main(int argc, char *argv[]) {
             auto subiso_time = duration_cast<milliseconds>(stop - start).count();
 
             // printf("# results: %ld;", result.size());
-            printf("\troot %d; root candidate: %d; ", root, rootCandidate);
-            printf("\texplore elapsed: %ld ms; bt count: %d; root index: %d\n", subiso_time, gm.bt_count, gm.get_root_index());
+            printf("\n\troot %d; root candidate: %d; ", root, rootCandidate);
+            printf("\n\texplore elapsed: %ld ms; bt count: %d; found: %s\n", subiso_time, gm.bt_count, result.size() > 0 ? "true" : "false");
 #endif
             total_bt_count += gm.bt_count;
             if (direction == 0 && result.size() > 0) {
                 // result[0].print();
+                successFlag = true;
                 break;
             } else if (direction == 1 && result.size() == 0) {
                 iter += 1;
+                successFlag = true;
                 break;
+            } else if (direction == 2 && result.size() == 0 && iter_start == iter_end) {
+                successFlag = true;
+                break;                
             }
         }
 
-        if (direction == 0 && result.size() > 0) {
-            // result[0].print();
-            break;
-        } else if (direction == 1 && result.size() == 0) {
-            iter += 1;
-            break;
+        if (successFlag) break;
+
+        if (direction == 0) {
+            iter += iter_delta;
+        } else if (direction == 1) {
+            iter += iter_delta;
+        } else if (direction == 2) {
+            if (result.size() == 0) {
+                iter_start = iter + 1;
+            } else {
+                iter_end = iter;
+            }
+            iter = (iter_start + iter_end) / 2;
         }
 
     }

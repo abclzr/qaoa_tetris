@@ -85,7 +85,7 @@ namespace subiso {
             int weight = 0;
             uint32_t candidates = u_candidates[u];
             while (candidates != 0) {
-                int v = 31 - __builtin_clz(candidates);
+                int v = __builtin_ctz(candidates);
                 candidates ^= (1 << v);
                 weight += weightArray_[uv2id_[u][v]];
                 if (weight >= u_min_weight) {
@@ -115,6 +115,12 @@ namespace subiso {
         for (int i = 0; i < all_candidate_sets.size(); ++i) {
             all_candidate_sets[i] = queryG_.get_candidate_set(i, dataG_);
             if (i == root && rootCandidate != -1) all_candidate_sets[i] = {rootCandidate};
+            else if (i == root && dataG_.num_nodes() % 2 == 0) {
+                all_candidate_sets[i].clear();
+                for (int j = 0; j < dataG_.num_nodes() / 2; j++)
+                all_candidate_sets[i].insert(j);
+            }
+
         }
         // root = -1;
         int initCSNodeIndex = 0;
@@ -401,11 +407,11 @@ namespace subiso {
             uint32_t bs = 0;
             auto candidates_ids_ = candidates_ids;
             for (int i = 0; i < n && __builtin_popcount(bs) < k; ++i) {
-                int v = 31 - __builtin_clz(candidates_ids_);
+                int v = __builtin_ctz(candidates_ids_);
                 candidates_ids_ ^= (1 << v);
                 if ((combo >> i) & 1)
                     // cout << c[i] << ' ';
-                    bs |= candidates[v];
+                    bs |= candidates[v];    
             }
             // cout << endl;
             if (__builtin_popcount(bs) < k) {
@@ -434,7 +440,7 @@ namespace subiso {
                 return true;
             }
             else if (maxK >= 1 && nnz == 1) {
-                int k = 31 - __builtin_clz(u_candidates[uu]);
+                int k = __builtin_ctz(u_candidates[uu]);
                 if (((check_ones & (1 << k)) >> k)) { // k-th bit is one
                     return true;
                 } else {
@@ -472,7 +478,7 @@ namespace subiso {
 
     bool GraphMatch::backtrack(BiMap &M,
                                vector<BiMap> &allM_prime,
-                               unordered_set<int> &expandable_u,
+                               unordered_set<int> expandable_u,
                                vector<uint32_t> &u_candidates,
                                vector<int> &indegrees,
                                int count) {
@@ -514,11 +520,11 @@ namespace subiso {
             //     }
             //     printf("\n");
             // }
-
+            auto old_u_candidates = u_candidates;
             for (auto vi : C_u) {
                 int v = vi.first;
                 // M.update(u, v);
-                auto old_u_candidates = u_candidates;
+                
                 update_candidates(M, u, v, u_candidates);
 
                 if (backtrack(M, allM_prime, expandable_u, u_candidates, indegrees, count) == false)
@@ -528,9 +534,9 @@ namespace subiso {
                 reset_candidates(M, u, u_candidates, old_u_candidates);
             }
             for (auto nbr : queryDAG_.get_neighbors(u)) {
-                if (indegrees[nbr] == queryDAG_.in_degree(nbr)) {
-                    expandable_u.erase(nbr);
-                }
+                // if (indegrees[nbr] == queryDAG_.in_degree(nbr)) {
+                    // expandable_u.erase(nbr);
+                // }
                 indegrees[nbr] -= 1;
             }
         } else {
@@ -559,43 +565,42 @@ namespace subiso {
                     }
                 }
 
+                auto old_u_candidates = u_candidates;
                 while (candidates != 0) {
-                    int v = 31 - __builtin_clz(candidates);
+                    int v = __builtin_ctz(candidates);
                     candidates ^= (1 << v);
                     // printf("v %d\n", v);
-                    if (M.hasValue(v) == false) {
-                        // M.update(u, v);
-                        auto old_u_candidates = u_candidates;
-                        update_candidates(M, u, v, u_candidates);
-                        // for (int i = 0; i < u_candidates.size(); ++i) {
-                        //     printf("node %d candidates str: %u | ", i, u_candidates[i]);
-                        //     auto candidates_ = u_candidates[i];
-                        //     while (candidates_ != 0) {
-                        //         int v = 31 - __builtin_clz(candidates_);
-                        //         candidates_ ^= (1 << v);
-                        //         printf("%d, ", v);
-                        //     }
-                        //     printf("\n");
-                        // }
+                    // M.update(u, v);
+                    
+                    update_candidates(M, u, v, u_candidates);
+                    // for (int i = 0; i < u_candidates.size(); ++i) {
+                    //     printf("node %d candidates str: %u | ", i, u_candidates[i]);
+                    //     auto candidates_ = u_candidates[i];
+                    //     while (candidates_ != 0) {
+                    //         int v = 31 - __builtin_clz(candidates_);
+                    //         candidates_ ^= (1 << v);
+                    //         printf("%d, ", v);
+                    //     }
+                    //     printf("\n");
+                    // }
 
-                        if ((early_backtrack_termination_check(M, u_candidates, maxK_) == false) && 
-                            backtrack(M, allM_prime, expandable_u, u_candidates, indegrees, count) == false)
-                            return false;
+                    if ((early_backtrack_termination_check(M, u_candidates, maxK_) == false) && 
+                        backtrack(M, allM_prime, expandable_u, u_candidates, indegrees, count) == false)
+                        return false;
 
-                        // M.eraseByKey(u);
-                        reset_candidates(M, u, u_candidates, old_u_candidates);
-                    }
+                    // M.eraseByKey(u);
+                    reset_candidates(M, u, u_candidates, old_u_candidates);
                 }
                 
 
                 for (auto nbr : queryDAG_.get_neighbors(u)) {
-                    if (indegrees[nbr] == queryDAG_.in_degree(nbr)) {
-                        expandable_u.erase(nbr);
-                    }
+                    // if (indegrees[nbr] == queryDAG_.in_degree(nbr)) {
+                        // expandable_u.erase(nbr);
+                    // }
                     indegrees[nbr] -= 1;
                 }
 
-                expandable_u.insert(u);
+                // expandable_u.insert(u);
 
             }
         }
