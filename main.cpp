@@ -87,7 +87,7 @@ int main(int argc, char *argv[]) {
         iter_start = npattern % 2 == 0 ? 1 : 2;
         iter_end = npattern + 1;
         iter_delta = 1;
-        iter = iter_start + 1;
+        iter = iter_start;
     } else if (direction == 1) {
         iter_start = npattern;
         iter_end = 0;
