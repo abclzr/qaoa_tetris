@@ -10,7 +10,6 @@ set(BIMAP__ENABLE_TESTS OFF)
 set(QAOAGRAPH_SOURCE_DIR "${PROJECT_SOURCE_DIR}/submodule/QAOAGraph")
 set(BIMAP_SOURCE_DIR "${PROJECT_SOURCE_DIR}/submodule/BiMap")
 
-add_compile_options(-march=native)
 
 if (NOT TARGET graph)
         add_subdirectory(${QAOAGRAPH_SOURCE_DIR} EXCLUDE_FROM_ALL)
@@ -29,7 +28,9 @@ include_directories("${BIMAP_SOURCE_DIR}")
 target_link_libraries(graph_match graph bimap)
 
 add_executable(subiso main.cpp)
+add_executable(tetris tetris_qaoa.cpp)
 target_link_libraries(subiso graph graph_match bimap)
+target_link_libraries(tetris graph graph_match bimap)
 
 find_package(Gperftools)
 if (GPERFTOOLS_LIBRARIES AND GPERFTOOLS_INCLUDE_DIR)
